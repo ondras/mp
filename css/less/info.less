@@ -1,0 +1,60 @@
+#info {
+	position: relative;
+	flex: 0 0 @base;
+
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+
+	.waveform {
+		position: absolute;
+		left: 0;
+		top: 0;
+		right: 0;
+		bottom: 0;
+	}
+
+	.current {
+		position: absolute;
+		right: 0;
+		top: 0;
+		bottom: 0;
+		background-color: rgba(255, 255, 255, 0.1);
+	}
+
+	.time-played, .time-remaining {
+		position: relative;
+		font-size: 20px;
+	}
+
+	.time-played {
+		padding: 0 10px;
+	}
+
+	.time-remaining {
+		padding: 0 10px;
+	}
+
+	.metadata {
+		text-align: center;
+		position: relative;
+		flex: 1;
+		min-width: 0; // ff needs for flexbox :/
+
+		h1, h2 {
+			margin: 0;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+
+		h1 {
+			margin: 5px 0;
+		}
+
+		h2 {
+			font-size: 100%;
+			margin-top: 10px;
+		}
+	}
+}

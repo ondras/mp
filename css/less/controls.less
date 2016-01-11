@@ -1,0 +1,68 @@
+#controls {
+	text-align: center;
+	flex: 0 0 @base;
+	
+	display: flex;
+	flex-direction: row;
+	
+	section {
+		flex-basis: @base;
+	}
+	
+	button {
+		font-family: FontAwesome, arial, sans-serif;
+	}
+	
+	#albumart {
+		background-size: contain;
+		background-position: 50% 50%;
+		background-repeat: no-repeat;
+	}
+	
+	#main {
+		flex: 1;
+
+		button {
+			line-height: @base;
+			font-size: 40px;
+			width: 1.5em;
+			vertical-align: middle;
+		}
+		.play, .pause {
+			font-size: 50px;
+		}
+	}
+
+	&.paused .pause, &.playing .play {
+		display: none;
+	}
+
+	#misc button {
+		float: right;
+		clear: right;
+		margin-right: 4px;
+		margin-top: 3px;
+		font-size: 18px;
+		
+		&::after {
+			content: "•";
+			margin-left: 0.2em;
+			color: #888;
+		}
+		
+		&.on::after {
+			color: #5af;
+			text-shadow: 0 0 3px #fff;
+		}
+		
+		sub {
+			font-size: 60%;
+			display: inline-block;
+			
+			&:not(:empty) {
+				width: 1ch;
+			}
+		}
+	}
+
+}

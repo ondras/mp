@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>Music Player Control</title>
+		<style>
+			[type=radio]:not(:checked) ~ input {
+				opacity: 0.3;
+			}
+			
+			#open {
+				font-size: 200%;
+			}
+		</style>
+	</head>
+	<body>
+		<h2>Pick some music...</h2>
+		
+		<p>
+			<input id="type-url" type="radio" name="type" checked="checked" />
+			<label for="type-url">URL</label>: <input id="input-url" type="text" value="../../sample/playlist.m3u" />
+		</p>
+		
+		<p>
+			<input id="type-file" type="radio" name="type" />
+			<label for="type-file">Local file(s)</label>: <input id="input-file" type="file" />
+		</p>
+
+		<button></button>
+		
+		<script src="main.js"></script>
+	</body>
+</html>

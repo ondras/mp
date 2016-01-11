@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>Music Player</title>
+		<link rel="stylesheet" href="app.css" />
+	</head>
+	<body>
+		<section id="controls">
+			<section id="albumart"></section>
+			<section id="main">
+				<button class="prev" title="Previous song">&#xf04a;</button>
+				<button class="play" title="Play">&#xf04b;</button>
+				<button class="pause" title="Pause">&#xf04c;</button>
+				<button class="next" title="Next song">&#xf04e;</button>
+			</section>
+			<section id="misc">
+				<button class="playlist">&#xf0ca;</button>
+				<button class="repeat">&#xf01e;<sub></sub></button>
+				<button class="visual">&#xf080;<sub></sub></button>
+			</section>
+		</section>
+
+		<section id="info">
+			<div class="waveform"></div>
+			<div class="current"></div>
+			<div class="time-played"></div>
+			<div class="metadata">
+				<h1></h1>
+				<h2></h2>
+			</div>
+			<div class="time-remaining"></div>
+		</section>
+
+		<section id="playlist">
+			<div class="analyser"></div>
+			<ol></ol>
+			<button class="random" title="Randomize playlist">&#xf074;</button>
+		</section>
+
+		<script src="app.js"></script>
+	</body>
+</html>
