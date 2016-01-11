@@ -1,4 +1,4 @@
-var registry = {};
+let registry = {};
 
 export function register(command, func) {
 	registry[command] = {
@@ -30,5 +30,6 @@ export function isEnabled(command) {
 }
 
 export function execute(command) {
-	return registry[command].func();
+	if (!isEnabled(command)) { return; }
+	return registry[command].func(command);
 }

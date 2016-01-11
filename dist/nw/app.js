@@ -432,8 +432,18 @@ System.register("util/register.js", ["./keyboard.js", "./command.js"], function 
 
 	function register(name, keys, func) {
 		command.register(name, func);
+
+		function wrap() {
+			if (command.isEnabled(name)) {
+				command.execute(name);
+				return true;
+			} else {
+				return false;
+			}
+		}
+
 		[].concat(keys).forEach(function (key) {
-			keyboard.register(name, key);
+			return keyboard.register(wrap, key);
 		});
 	}
 
@@ -475,45 +485,78 @@ System.register("util/xhr.js", [], function (_export) {
 
 "use strict";
 
-System.register("util/keyboard.js", ["./command.js"], function (_export) {
-	var command, registry, handler, codes, modifiers, parse;
-	return {
-		setters: [function (_commandJs) {
-			command = _commandJs;
-		}],
-		execute: function () {
-			registry = [];
+System.register("util/keyboard.js", [], function (_export) {
+	var codes, modifiers, registry;
 
-			handler = function handler(e) {
-				var available = registry.filter(function (reg) {
-					if (reg.type != e.type) {
-						return false;
-					}
+	function handler(e) {
+		var available = registry.filter(function (reg) {
+			if (reg.type != e.type) {
+				return false;
+			}
 
-					for (var m in reg.modifiers) {
-						if (reg.modifiers[m] != e[m]) {
-							return false;
-						}
-					}
-
-					var code = e.type == "keypress" ? e.charCode : e.keyCode;
-
-					if (reg.code != code) {
-						return false;
-					}
-
-					if (!command.isEnabled(reg.command)) {
-						return false;
-					}
-
-					return true;
-				});
-
-				if (available.length) {
-					command.execute(available[0].command);
+			for (var m in reg.modifiers) {
+				if (reg.modifiers[m] != e[m]) {
+					return false;
 				}
-			};
+			}
 
+			var code = e.type == "keypress" ? e.charCode : e.keyCode;
+
+			if (reg.code != code) {
+				return false;
+			}
+
+			return true;
+		});
+		var index = available.length;
+
+		if (!index) {
+			return;
+		}
+
+		while (index-- > 0) {
+			var executed = available[index].func();
+
+			if (executed) {
+				return;
+			}
+		}
+	}
+
+	function parse(key) {
+		var result = {
+			func: null,
+			modifiers: {}
+		};
+		key = key.toLowerCase();
+		modifiers.forEach(function (mod) {
+			var key = mod + "Key";
+			result.modifiers[key] = false;
+			var re = new RegExp(mod + "[+-]");
+			key = key.replace(re, function () {
+				result.modifiers[key] = true;
+				return "";
+			});
+		});
+
+		if (key.length == 1) {
+			result.code = key.charCodeAt(0);
+			result.type = "keypress";
+		} else {
+			if (!(key in codes)) {
+				throw new Error("Unknown keyboard code " + key);
+			}
+
+			result.code = codes[key];
+			result.type = "keydown";
+		}
+
+		return result;
+	}
+
+	return {
+		setters: [],
+		execute: function () {
 			codes = {
 				back: 8,
 				tab: 9,
@@ -544,41 +587,12 @@ System.register("util/keyboard.js", ["./command.js"], function (_export) {
 				f12: 123
 			};
 			modifiers = ["ctrl", "alt", "shift", "meta"];
+			registry = [];
 
-			parse = function parse(key) {
-				var result = {
-					modifiers: {}
-				};
-				key = key.toLowerCase();
-				modifiers.forEach(function (mod) {
-					var key = mod + "Key";
-					result.modifiers[key] = false;
-					var re = new RegExp(mod + "[+-]");
-					key = key.replace(re, function () {
-						result.modifiers[key] = true;
-						return "";
-					});
-				});
-
-				if (key.length == 1) {
-					result.code = key.charCodeAt(0);
-					result.type = "keypress";
-				} else {
-					if (!(key in codes)) {
-						throw new Error("Unknown keyboard code " + key);
-					}
-
-					result.code = codes[key];
-					result.type = "keydown";
-				}
-
-				return result;
-			};
-
-			function register(command, key) {
-				var reg = parse(key);
-				reg.command = command;
-				registry.push(reg);
+			function register(func, key) {
+				var item = parse(key);
+				item.func = func;
+				registry.push(item);
 			}
 
 			_export("register", register);
@@ -635,7 +649,11 @@ System.register("util/command.js", [], function (_export) {
 			_export("isEnabled", isEnabled);
 
 			function execute(command) {
-				return registry[command].func();
+				if (!isEnabled(command)) {
+					return;
+				}
+
+				return registry[command].func(command);
 			}
 
 			_export("execute", execute);

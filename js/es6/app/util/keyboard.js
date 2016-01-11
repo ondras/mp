@@ -1,25 +1,4 @@
-import * as command from "./command.js";
-var registry = [];
-
-var handler = function(e) {
-	var available = registry.filter(function(reg) {
-		if (reg.type != e.type) { return false; }
-
-		for (var m in reg.modifiers) {
-			if (reg.modifiers[m] != e[m]) { return false; }
-		}
-
-		var code = (e.type == "keypress" ? e.charCode : e.keyCode);
-		if (reg.code != code) { return false; }
-		if (!command.isEnabled(reg.command)) { return false; }
-
-		return true;
-	});
-
-	if (available.length) { command.execute(available[0].command); }
-}
-
-var codes = {
+const codes = {
 	back: 8,
 	tab: 9,
 	enter: 13,
@@ -49,21 +28,48 @@ var codes = {
 	f12: 123
 };
 
-var modifiers = ["ctrl", "alt", "shift", "meta"]; // meta = command
+const modifiers = ["ctrl", "alt", "shift", "meta"]; // meta = command
 
-var parse = function(key) {
-	var result = {
+let registry = [];
+
+function handler(e) {
+	let available = registry.filter(reg => {
+		if (reg.type != e.type) { return false; }
+
+		for (let m in reg.modifiers) {
+			if (reg.modifiers[m] != e[m]) { return false; }
+		}
+
+		let code = (e.type == "keypress" ? e.charCode : e.keyCode);
+		if (reg.code != code) { return false; }
+
+		return true;
+	});
+
+
+	let index = available.length;
+	if (!index) { return; }
+
+	while (index --> 0) {
+		let executed = available[index].func();
+		if (executed) { return; }
+	}
+}
+
+function parse(key) {
+	let result = {
+		func: null,
 		modifiers: {}
 	};
 
 	key = key.toLowerCase();
 
-	modifiers.forEach(function(mod) {
-		var key = mod + "Key";
+	modifiers.forEach(mod => {
+		let key = mod + "Key";
 		result.modifiers[key] = false;
 
-		var re = new RegExp(mod + "[+-]");
-		key = key.replace(re, function() {
+		let re = new RegExp(mod + "[+-]");
+		key = key.replace(re, () => {
 			result.modifiers[key] = true;
 			return "";
 		});
@@ -81,10 +87,10 @@ var parse = function(key) {
 	return result;
 }
 
-export function register(command, key) {
-	var reg = parse(key);
-	reg.command = command;
-	registry.push(reg);
+export function register(func, key) {
+	let item = parse(key);
+	item.func = func;
+	registry.push(item);
 }
 
 window.addEventListener("keydown", handler);
