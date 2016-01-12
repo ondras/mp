@@ -31,7 +31,7 @@ if (!Object.assign) {
 }
 !function(a){"use strict";function b(a,b){if("/"===a.charAt(0)&&(a=a.slice(1)),"."!==a.charAt(0))return a;for(var c=a.split("/");"."===c[0]||".."===c[0];)".."===c.shift()&&b.pop();return b.concat(c).join("/")}function c(a){var b=m[a];return b&&!l[a]&&(l[a]=!0,b.execute()),b&&b.proxy}function d(a,b){n[a]=b}function e(a){return n[a]||c(a)}function f(a){return!!n[a]||!!m[a]}function g(a,b){var c=document.createElement("script");c.async&&(c.async=!1),k?c.onreadystatechange=function(){/loaded|complete/.test(this.readyState)&&(this.onreadystatechange=null,b())}:c.onload=c.onerror=b,c.setAttribute("src",a),j.appendChild(c)}function h(a){return new Promise(function(b,c){g((o.baseURL||"/")+a+".js",function(){i&&(o.register(a,i[0],i[1]),i=void 0);var d=m[a];return d?void Promise.all(d.deps.map(function(a){return n[a]||m[a]?Promise.resolve():h(a)})).then(b,c):void c(new Error("Error loading module "+a))})})}var i,j=document.getElementsByTagName("head")[0],k=/MSIE/.test(navigator.userAgent),l=Object.create(null),m=Object.create(null),n=Object.create(null),o={set:d,get:e,has:f,"import":function(a){return new Promise(function(c){var d=b(a,[]),f=e(d);return f?c(f):h(a).then(function(){return e(d)})})},register:function(a,c,d){if(Array.isArray(a))return i=[],void i.push.apply(i,arguments);var f,g,h=Object.create(null),j=Object.create(null);m[a]=f={proxy:h,values:j,deps:c.map(function(c){return b(c,a.split("/").slice(0,-1))}),dependants:[],update:function(a,b){g.setters[f.deps.indexOf(a)](b)},execute:function(){f.deps.map(function(b){var c=n[b];c?f.update(b,c):(c=e(b)&&m[b].values,c&&(m[b].dependants.push(a),f.update(b,c)))}),g.execute()}},g=d(function(b,c){return j[b]=c,f.lock=!0,f.dependants.forEach(function(b){m[b]&&!m[b].lock&&m[b].update(a,j)}),f.lock=!1,Object.getOwnPropertyDescriptor(h,b)||Object.defineProperty(h,b,{enumerable:!0,get:function(){return j[b]}}),c})}};a.System=o}(window);"use strict";
 
-System.register("waveform.js", [], function (_export) {
+System.register("waveform.js", [], function (_export, _context) {
 	var _createClass, ctx, document, Waveform;
 
 	function _classCallCheck(instance, Constructor) {
@@ -43,7 +43,7 @@ System.register("waveform.js", [], function (_export) {
 	return {
 		setters: [],
 		execute: function () {
-			_createClass = (function () {
+			_createClass = function () {
 				function defineProperties(target, props) {
 					for (var i = 0; i < props.length; i++) {
 						var descriptor = props[i];
@@ -59,12 +59,12 @@ System.register("waveform.js", [], function (_export) {
 					if (staticProps) defineProperties(Constructor, staticProps);
 					return Constructor;
 				};
-			})();
+			}();
 
 			ctx = new window.AudioContext();
 			document = window.document;
 
-			Waveform = (function () {
+			Waveform = function () {
 				function Waveform(arrayBuffer, options) {
 					_classCallCheck(this, Waveform);
 
@@ -136,7 +136,7 @@ System.register("waveform.js", [], function (_export) {
 				}]);
 
 				return Waveform;
-			})();
+			}();
 
 			_export("default", Waveform);
 		}
@@ -145,7 +145,7 @@ System.register("waveform.js", [], function (_export) {
 
 "use strict";
 
-System.register("playlist.js", ["player.js", "platform.js"], function (_export) {
+System.register("playlist.js", ["player.js", "platform.js"], function (_export, _context) {
 	var player, platform, document, node, list, current, items, repeat, height, dragging;
 
 	function activate() {
@@ -360,7 +360,7 @@ System.register("playlist.js", ["player.js", "platform.js"], function (_export) 
 
 "use strict";
 
-System.register("util/albumart.js", ["util/xhr.js"], function (_export) {
+System.register("util/albumart.js", ["util/xhr.js"], function (_export, _context) {
 	var xhr, document, node, files;
 
 	function doShow(src) {
@@ -427,7 +427,7 @@ System.register("util/albumart.js", ["util/xhr.js"], function (_export) {
 
 "use strict";
 
-System.register("util/register.js", ["./keyboard.js", "./command.js"], function (_export) {
+System.register("util/register.js", ["./keyboard.js", "./command.js"], function (_export, _context) {
 	var keyboard, command;
 
 	function register(name, keys, func) {
@@ -461,7 +461,7 @@ System.register("util/register.js", ["./keyboard.js", "./command.js"], function 
 
 "use strict";
 
-System.register("util/xhr.js", [], function (_export) {
+System.register("util/xhr.js", [], function (_export, _context) {
 	function xhr(url) {
 		var r = new window.XMLHttpRequest();
 		r.responseType = "arraybuffer";
@@ -485,7 +485,7 @@ System.register("util/xhr.js", [], function (_export) {
 
 "use strict";
 
-System.register("util/keyboard.js", [], function (_export) {
+System.register("util/keyboard.js", [], function (_export, _context) {
 	var codes, modifiers, registry;
 
 	function handler(e) {
@@ -605,7 +605,7 @@ System.register("util/keyboard.js", [], function (_export) {
 
 "use strict";
 
-System.register("util/command.js", [], function (_export) {
+System.register("util/command.js", [], function (_export, _context) {
 	var registry;
 	return {
 		setters: [],
@@ -663,7 +663,7 @@ System.register("util/command.js", [], function (_export) {
 
 "use strict";
 
-System.register("info.js", ["player.js", "util/albumart.js", "util/xhr.js", "waveform.js", "metadata/metadata.js"], function (_export) {
+System.register("info.js", ["player.js", "util/albumart.js", "util/xhr.js", "waveform.js", "metadata/metadata.js"], function (_export, _context) {
 	var player, albumart, xhr, Waveform, metadata, document, dom;
 
 	function leadingZero(num) {
@@ -781,7 +781,7 @@ System.register("info.js", ["player.js", "util/albumart.js", "util/xhr.js", "wav
 
 "use strict";
 
-System.register("metadata/id3v2.js", [], function (_export) {
+System.register("metadata/id3v2.js", [], function (_export, _context) {
 	function getEncoding(byte) {
 		switch (byte) {
 			case 0:
@@ -961,7 +961,7 @@ System.register("metadata/id3v2.js", [], function (_export) {
 
 "use strict";
 
-System.register("metadata/metadata.js", ["./id3v1.js", "./id3v2.js", "./ogg.js", "./mp4.js"], function (_export) {
+System.register("metadata/metadata.js", ["./id3v1.js", "./id3v2.js", "./ogg.js", "./mp4.js"], function (_export, _context) {
 	var id3v1, id3v2, ogg, mp4, decoders;
 
 	function metadata(arrayBuffer) {
@@ -1033,7 +1033,7 @@ System.register("metadata/metadata.js", ["./id3v1.js", "./id3v2.js", "./ogg.js",
 
 "use strict";
 
-System.register("metadata/mp4.js", [], function (_export) {
+System.register("metadata/mp4.js", [], function (_export, _context) {
 	var containers;
 
 	function processIlstAtom(data) {
@@ -1143,7 +1143,7 @@ System.register("metadata/mp4.js", [], function (_export) {
 
 "use strict";
 
-System.register("metadata/id3v1.js", [], function (_export) {
+System.register("metadata/id3v1.js", [], function (_export, _context) {
 	return {
 		setters: [],
 		execute: function () {
@@ -1177,7 +1177,7 @@ System.register("metadata/id3v1.js", [], function (_export) {
 
 "use strict";
 
-System.register("metadata/ogg.js", [], function (_export) {
+System.register("metadata/ogg.js", [], function (_export, _context) {
 	function readPage(data, offset, getData) {
 		var page = {
 			size: 0,
@@ -1260,7 +1260,7 @@ System.register("metadata/ogg.js", [], function (_export) {
 
 "use strict";
 
-System.register("player.js", ["vis/spectrum.js", "vis/psyco.js"], function (_export) {
+System.register("player.js", ["vis/spectrum.js", "vis/psyco.js"], function (_export, _context) {
 	var Spectrum, Psyco, audio, ctx, source, visuals, visual;
 	return {
 		setters: [function (_visSpectrumJs) {
@@ -1341,7 +1341,7 @@ System.register("player.js", ["vis/spectrum.js", "vis/psyco.js"], function (_exp
 
 "use strict";
 
-System.register("app.js", ["platform.js", "util/register.js", "util/xhr.js", "player.js", "playlist.js", "info.js", "controls.js"], function (_export) {
+System.register("app.js", ["platform.js", "util/register.js", "util/xhr.js", "player.js", "playlist.js", "info.js", "controls.js"], function (_export, _context) {
 	var platform, register, xhr, player, playlist, info, controls;
 
 	function isPlaylist(url) {
@@ -1505,7 +1505,7 @@ System.register("app.js", ["platform.js", "util/register.js", "util/xhr.js", "pl
 
 "use strict";
 
-System.register("controls.js", ["player.js", "playlist.js", "platform.js", "util/register.js"], function (_export) {
+System.register("controls.js", ["player.js", "playlist.js", "platform.js", "util/register.js"], function (_export, _context) {
 	var player, playlist, platform, register, document, repeatModes, repeatTitles, visualModes, visualLabels, visualTitles, settings, dom;
 
 	function setState(state) {
@@ -1620,7 +1620,7 @@ System.register("controls.js", ["player.js", "playlist.js", "platform.js", "util
 
 "use strict";
 
-System.register("vis/vis.js", [], function (_export) {
+System.register("vis/vis.js", [], function (_export, _context) {
 	var _createClass, document, Vis;
 
 	function _classCallCheck(instance, Constructor) {
@@ -1632,7 +1632,7 @@ System.register("vis/vis.js", [], function (_export) {
 	return {
 		setters: [],
 		execute: function () {
-			_createClass = (function () {
+			_createClass = function () {
 				function defineProperties(target, props) {
 					for (var i = 0; i < props.length; i++) {
 						var descriptor = props[i];
@@ -1648,11 +1648,11 @@ System.register("vis/vis.js", [], function (_export) {
 					if (staticProps) defineProperties(Constructor, staticProps);
 					return Constructor;
 				};
-			})();
+			}();
 
 			document = window.document;
 
-			Vis = (function () {
+			Vis = function () {
 				function Vis(audioContext) {
 					_classCallCheck(this, Vis);
 
@@ -1715,7 +1715,7 @@ System.register("vis/vis.js", [], function (_export) {
 				}]);
 
 				return Vis;
-			})();
+			}();
 
 			_export("default", Vis);
 		}
@@ -1724,7 +1724,7 @@ System.register("vis/vis.js", [], function (_export) {
 
 "use strict";
 
-System.register("vis/psyco.js", ["./vis.js"], function (_export) {
+System.register("vis/psyco.js", ["./vis.js"], function (_export, _context) {
 	var Vis, _createClass, Psyco;
 
 	function _classCallCheck(instance, Constructor) {
@@ -1762,7 +1762,7 @@ System.register("vis/psyco.js", ["./vis.js"], function (_export) {
 			Vis = _visJs.default;
 		}],
 		execute: function () {
-			_createClass = (function () {
+			_createClass = function () {
 				function defineProperties(target, props) {
 					for (var i = 0; i < props.length; i++) {
 						var descriptor = props[i];
@@ -1778,9 +1778,9 @@ System.register("vis/psyco.js", ["./vis.js"], function (_export) {
 					if (staticProps) defineProperties(Constructor, staticProps);
 					return Constructor;
 				};
-			})();
+			}();
 
-			Psyco = (function (_Vis) {
+			Psyco = function (_Vis) {
 				_inherits(Psyco, _Vis);
 
 				function Psyco(audioContext) {
@@ -1878,7 +1878,7 @@ System.register("vis/psyco.js", ["./vis.js"], function (_export) {
 				}]);
 
 				return Psyco;
-			})(Vis);
+			}(Vis);
 
 			_export("default", Psyco);
 		}
@@ -1887,7 +1887,7 @@ System.register("vis/psyco.js", ["./vis.js"], function (_export) {
 
 "use strict";
 
-System.register("vis/spectrum.js", ["./vis.js"], function (_export) {
+System.register("vis/spectrum.js", ["./vis.js"], function (_export, _context) {
 	var Vis, _createClass, Spectrum;
 
 	function _classCallCheck(instance, Constructor) {
@@ -1925,7 +1925,7 @@ System.register("vis/spectrum.js", ["./vis.js"], function (_export) {
 			Vis = _visJs.default;
 		}],
 		execute: function () {
-			_createClass = (function () {
+			_createClass = function () {
 				function defineProperties(target, props) {
 					for (var i = 0; i < props.length; i++) {
 						var descriptor = props[i];
@@ -1941,9 +1941,9 @@ System.register("vis/spectrum.js", ["./vis.js"], function (_export) {
 					if (staticProps) defineProperties(Constructor, staticProps);
 					return Constructor;
 				};
-			})();
+			}();
 
-			Spectrum = (function (_Vis) {
+			Spectrum = function (_Vis) {
 				_inherits(Spectrum, _Vis);
 
 				function Spectrum(audioContext, options) {
@@ -2003,7 +2003,7 @@ System.register("vis/spectrum.js", ["./vis.js"], function (_export) {
 				}]);
 
 				return Spectrum;
-			})(Vis);
+			}(Vis);
 
 			_export("default", Spectrum);
 		}
@@ -2012,7 +2012,7 @@ System.register("vis/spectrum.js", ["./vis.js"], function (_export) {
 
 "use strict";
 
-System.register("platform.js", [], function (_export) {
+System.register("platform.js", [], function (_export, _context) {
 	var gui, argv, baseURI;
 	return {
 		setters: [],

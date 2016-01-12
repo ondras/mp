@@ -40,8 +40,8 @@ The trick here is that the code base is shared: the very same application code t
 
 1. Clone this project
 2. Run it:
-  - adjust and run `dist/electron/run-electron.sh [path-to-song-or-playlist]`
-  - adjust and run `dist/nw/run-nw.sh [path-to-song-or-playlist]`
+  - adjust and run `dist/electron/mp.sh [path-to-song-or-playlist]`
+  - adjust and run `dist/nw/mp.sh [path-to-song-or-playlist]`
   - launch `dist/web/index.html`
   
 The web version is also hosted at [GitHub pages](http://ondras.github.io/mp/dist/web/).

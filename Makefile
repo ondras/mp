@@ -12,7 +12,9 @@ electron:
 	cp -r $(COMMON) $(ELECTRON)
 	cp js/electron.app.js $(ELECTRON)/app.js
 	cp js/electron.main.js $(ELECTRON)/main.js
-	cp bin/run-electron.sh $(ELECTRON)/run.sh
+	cp bin/mp-electron.sh $(ELECTRON)/mp.sh
+	cp bin/mp-electron.bat $(ELECTRON)/mp.bat
+	cp bin/install.bat $(ELECTRON)
 	ln -f -r -s sample $(ELECTRON)
 
 nw:
@@ -21,7 +23,7 @@ nw:
 	mkdir -p $(NW)
 	cp -r $(COMMON) $(NW)
 	cp js/nw.app.js $(NW)/app.js
-	cp bin/run-nw.sh $(NW)/run.sh
+	cp bin/mp-nw.sh $(NW)/mp.sh
 	ln -f -r -s sample $(NW)
 
 web:
