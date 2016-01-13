@@ -1,10 +1,22 @@
+import * as keyboard from "./keyboard.js";
+
 let registry = {};
 
-export function register(command, func) {
+export function register(command, keys, func) {
 	registry[command] = {
 		func: func,
 		enabled: true
 	};
+
+	function wrap() {
+		if (isEnabled(command)) {
+			execute(command);
+			return true;
+		} else {
+			return false;
+		}
+	}
+	[].concat(keys || []).forEach(key => keyboard.register(wrap, key));
 
 	return command;
 }

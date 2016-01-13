@@ -1,16 +1,16 @@
 import * as platform from "platform.js";
-import register from "util/register.js";
+import * as command from "util/command.js";
 import xhr from "util/xhr.js";
 import * as player from "player.js";
 import * as playlist from "playlist.js";
 import * as info from "info.js";
 import * as controls from "controls.js";
 
-register("devtools", "f12", () => {
+command.register("devtools", "f12", () => {
 	platform.showDevTools();
 });
 
-register("close", "esc", () => {
+command.register("close", "esc", () => {
 	window.close();
 });
 

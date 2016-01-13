@@ -1,113 +1,163 @@
 !function(a){"use strict";function b(a,b){if("/"===a.charAt(0)&&(a=a.slice(1)),"."!==a.charAt(0))return a;for(var c=a.split("/");"."===c[0]||".."===c[0];)".."===c.shift()&&b.pop();return b.concat(c).join("/")}function c(a){var b=m[a];return b&&!l[a]&&(l[a]=!0,b.execute()),b&&b.proxy}function d(a,b){n[a]=b}function e(a){return n[a]||c(a)}function f(a){return!!n[a]||!!m[a]}function g(a,b){var c=document.createElement("script");c.async&&(c.async=!1),k?c.onreadystatechange=function(){/loaded|complete/.test(this.readyState)&&(this.onreadystatechange=null,b())}:c.onload=c.onerror=b,c.setAttribute("src",a),j.appendChild(c)}function h(a){return new Promise(function(b,c){g((o.baseURL||"/")+a+".js",function(){i&&(o.register(a,i[0],i[1]),i=void 0);var d=m[a];return d?void Promise.all(d.deps.map(function(a){return n[a]||m[a]?Promise.resolve():h(a)})).then(b,c):void c(new Error("Error loading module "+a))})})}var i,j=document.getElementsByTagName("head")[0],k=/MSIE/.test(navigator.userAgent),l=Object.create(null),m=Object.create(null),n=Object.create(null),o={set:d,get:e,has:f,"import":function(a){return new Promise(function(c){var d=b(a,[]),f=e(d);return f?c(f):h(a).then(function(){return e(d)})})},register:function(a,c,d){if(Array.isArray(a))return i=[],void i.push.apply(i,arguments);var f,g,h=Object.create(null),j=Object.create(null);m[a]=f={proxy:h,values:j,deps:c.map(function(c){return b(c,a.split("/").slice(0,-1))}),dependants:[],update:function(a,b){g.setters[f.deps.indexOf(a)](b)},execute:function(){f.deps.map(function(b){var c=n[b];c?f.update(b,c):(c=e(b)&&m[b].values,c&&(m[b].dependants.push(a),f.update(b,c)))}),g.execute()}},g=d(function(b,c){return j[b]=c,f.lock=!0,f.dependants.forEach(function(b){m[b]&&!m[b].lock&&m[b].update(a,j)}),f.lock=!1,Object.getOwnPropertyDescriptor(h,b)||Object.defineProperty(h,b,{enumerable:!0,get:function(){return j[b]}}),c})}};a.System=o}(window);"use strict";
 
-System.register("waveform.js", [], function (_export, _context) {
-	var _createClass, ctx, document, Waveform;
+System.register("app.js", ["platform.js", "util/command.js", "util/xhr.js", "player.js", "playlist.js", "info.js", "controls.js"], function (_export, _context) {
+	var platform, command, xhr, player, playlist, info, controls;
 
-	function _classCallCheck(instance, Constructor) {
-		if (!(instance instanceof Constructor)) {
-			throw new TypeError("Cannot call a class as a function");
+	function isPlaylist(url) {
+		return url.href.match(/\.m3u8?$/i);
+	}
+
+	function getPlaylist(url) {
+		var encoding = url.href.match(/8$/) ? "utf-8" : "windows-1250";
+		var decoder = new TextDecoder(encoding);
+		return xhr(url.href).then(function (r) {
+			var view = new DataView(r.response);
+			var str = decoder.decode(view);
+			var urls = str.split("\n").map(function (row) {
+				return row.replace(/#.*/, "");
+			}).filter(function (row) {
+				return row.match(/\S/);
+			}).map(function (s) {
+				return new window.URL(s, url);
+			});
+			return urls;
+		});
+	}
+
+	function playFile(url) {
+		if (isPlaylist(url)) {
+			return getPlaylist(url).then(function (urls) {
+				return Promise.all(urls.map(playFile));
+			});
+		} else {
+			return playSong(url);
 		}
 	}
 
+	function enqueueFile(url) {
+		if (isPlaylist(url)) {
+			return getPlaylist(url).then(function (urls) {
+				return Promise.all(urls.map(enqueueFile));
+			});
+		} else {
+			return enqueueSong(url);
+		}
+	}
+
+	function playSong(url) {
+		var promise = enqueueSong(url);
+
+		if (!playlist.isEnabled("next")) {
+			player.play(url);
+		}
+
+		return promise;
+	}
+
+	function enqueueSong(url) {
+		playlist.add(url);
+		return Promise.resolve();
+	}
+
+	function toURL(stuff, base) {
+		return stuff instanceof window.URL ? stuff : new window.URL(stuff, base);
+	}
+
+	function processCommand(command) {
+		switch (command) {
+			case "play":
+				player.audio.play();
+				break;
+
+			case "pause":
+				player.audio.pause();
+				break;
+
+			case "prev":
+				playlist.prev();
+				break;
+
+			case "next":
+				playlist.next();
+				break;
+
+			default:
+				alert("Unknown command '" + command + "'.");
+				break;
+		}
+	}
+
+	function processArgs(args, baseURI) {
+		var playlistCleared = false;
+		var command = "p";
+		args.forEach(function (arg) {
+			if (arg.charAt(0) == "-") {
+				command = arg.slice(1);
+				return;
+			}
+
+			var url = undefined;
+
+			switch (command) {
+				case "p":
+					url = toURL(arg, baseURI);
+
+					if (!playlistCleared) {
+						playlist.clear();
+						playlistCleared = true;
+						playFile(url);
+					} else {
+						enqueueFile(url);
+					}
+
+					break;
+
+				case "q":
+					url = toURL(arg, baseURI);
+					enqueueFile(url);
+					break;
+
+				case "c":
+					processCommand(arg);
+					break;
+
+				default:
+					alert("Unknown argument '" + arg + "' for command '" + command + "'.");
+					break;
+			}
+		});
+	}
+
 	return {
-		setters: [],
+		setters: [function (_platformJs) {
+			platform = _platformJs;
+		}, function (_utilCommandJs) {
+			command = _utilCommandJs;
+		}, function (_utilXhrJs) {
+			xhr = _utilXhrJs.default;
+		}, function (_playerJs) {
+			player = _playerJs;
+		}, function (_playlistJs) {
+			playlist = _playlistJs;
+		}, function (_infoJs) {
+			info = _infoJs;
+		}, function (_controlsJs) {
+			controls = _controlsJs;
+		}],
 		execute: function () {
-			_createClass = function () {
-				function defineProperties(target, props) {
-					for (var i = 0; i < props.length; i++) {
-						var descriptor = props[i];
-						descriptor.enumerable = descriptor.enumerable || false;
-						descriptor.configurable = true;
-						if ("value" in descriptor) descriptor.writable = true;
-						Object.defineProperty(target, descriptor.key, descriptor);
-					}
-				}
+			command.register("devtools", "f12", function () {
+				platform.showDevTools();
+			});
+			command.register("close", "esc", function () {
+				window.close();
+			});
+			platform.onOpen(processArgs);
 
-				return function (Constructor, protoProps, staticProps) {
-					if (protoProps) defineProperties(Constructor.prototype, protoProps);
-					if (staticProps) defineProperties(Constructor, staticProps);
-					return Constructor;
-				};
-			}();
-
-			ctx = new window.AudioContext();
-			document = window.document;
-
-			Waveform = function () {
-				function Waveform(arrayBuffer, options) {
-					_classCallCheck(this, Waveform);
-
-					this._options = Object.assign({
-						width: 600,
-						height: 70,
-						columns: 600,
-						color: "gray"
-					}, options);
-					this._node = document.createElement("canvas");
-					this._node.width = this._options.width;
-					this._node.height = this._options.height;
-					ctx.decodeAudioData(arrayBuffer, this._decoded.bind(this));
-				}
-
-				_createClass(Waveform, [{
-					key: "getNode",
-					value: function getNode() {
-						return this._node;
-					}
-				}, {
-					key: "_decoded",
-					value: function _decoded(audioBuffer) {
-						var channels = [];
-
-						for (var i = 0; i < audioBuffer.numberOfChannels; i++) {
-							channels.push(audioBuffer.getChannelData(i));
-						}
-
-						var ctx = this._node.getContext("2d");
-
-						ctx.beginPath();
-						ctx.moveTo(0, this._node.height);
-						var width = this._options.width / this._options.columns;
-						var samplesPerColumn = Math.floor(channels[0].length / this._options.columns);
-
-						for (var i = 0; i < this._options.columns; i++) {
-							var val = this._computeColumn(channels, i * samplesPerColumn, (i + 1) * samplesPerColumn);
-
-							var height = val * this._node.height;
-							ctx.lineTo(i * width, this._node.height - height);
-						}
-
-						ctx.moveTo(this._node.width, this._node.height);
-						ctx.closePath();
-						var gradient = ctx.createLinearGradient(0, 0, 0, this._node.height);
-						gradient.addColorStop(0, "#8cf");
-						gradient.addColorStop(1, "#38d");
-						ctx.shadowColor = "#000";
-						ctx.shadowBlur = 1;
-						ctx.shadowOffsetY = -1;
-						ctx.fillStyle = gradient;
-						ctx.fill();
-					}
-				}, {
-					key: "_computeColumn",
-					value: function _computeColumn(channels, fromSample, toSample) {
-						var sum = 0;
-
-						for (var i = fromSample; i < toSample; i++) {
-							for (var j = 0; j < channels.length; j++) {
-								sum += Math.abs(channels[j][i]);
-							}
-						}
-
-						var count = (toSample - fromSample) * channels.length;
-						return 3 * sum / count;
-					}
-				}]);
-
-				return Waveform;
-			}();
-
-			_export("default", Waveform);
+			if (platform.argv.length) {
+				processArgs(platform.argv, platform.baseURI);
+			} else {
+				alert("No arguments received, starting in dummy mode. Re-launch with more arguments or control a running instance to play something.");
+			}
 		}
 	};
 });
@@ -329,421 +379,310 @@ System.register("playlist.js", ["player.js", "platform.js"], function (_export, 
 
 "use strict";
 
-System.register("util/albumart.js", ["util/xhr.js"], function (_export, _context) {
-	var xhr, document, node, files;
-
-	function doShow(src) {
-		node.style.backgroundImage = "url(" + src + ")";
-	}
-
-	function tryFile(url) {
-		return xhr(url).then(function (r) {
-			if (r.status == 404) {
-				throw new Error();
-			}
-
-			return url;
-		});
-	}
-
+System.register("player.js", ["vis/spectrum.js", "vis/psyco.js"], function (_export, _context) {
+	var Spectrum, Psyco, audio, ctx, source, visuals, visual;
 	return {
-		setters: [function (_utilXhrJs) {
-			xhr = _utilXhrJs.default;
+		setters: [function (_visSpectrumJs) {
+			Spectrum = _visSpectrumJs.default;
+		}, function (_visPsycoJs) {
+			Psyco = _visPsycoJs.default;
 		}],
 		execute: function () {
-			document = window.document;
-			node = document.querySelector("#albumart");
-			files = ["Cover.jpg", "cover.jpg", "Folder.jpg", "folder.jpg"];
+			_export("audio", audio = new window.Audio());
 
-			function clear() {
-				node.style.backgroundImage = "";
-			}
+			_export("audio", audio);
 
-			_export("clear", clear);
-
-			function show(metadataCover, audioSrc) {
-				if (metadataCover) {
-					var mC = metadataCover;
-					var src = URL.createObjectURL(new Blob([mC.data], {
-						type: mC.type
-					}));
-					doShow(src);
-					return;
-				}
-
-				var f = files.slice();
-
-				var tryNext = function tryNext() {
-					if (!f.length) {
-						return;
-					}
-
-					try {
-						var url = new window.URL(f.shift(), audioSrc);
-						tryFile(url.href).then(doShow, tryNext);
-					} catch (e) {
-						tryNext();
-					}
-				};
-
-				tryNext();
-			}
-
-			_export("show", show);
-		}
-	};
-});
-
-"use strict";
-
-System.register("util/register.js", ["./keyboard.js", "./command.js"], function (_export, _context) {
-	var keyboard, command;
-
-	function register(name, keys, func) {
-		command.register(name, func);
-
-		function wrap() {
-			if (command.isEnabled(name)) {
-				command.execute(name);
-				return true;
-			} else {
-				return false;
-			}
-		}
-
-		[].concat(keys).forEach(function (key) {
-			return keyboard.register(wrap, key);
-		});
-	}
-
-	_export("default", register);
-
-	return {
-		setters: [function (_keyboardJs) {
-			keyboard = _keyboardJs;
-		}, function (_commandJs) {
-			command = _commandJs;
-		}],
-		execute: function () {}
-	};
-});
-
-"use strict";
-
-System.register("util/xhr.js", [], function (_export, _context) {
-	function xhr(url) {
-		var r = new window.XMLHttpRequest();
-		r.responseType = "arraybuffer";
-		r.open("get", url, true);
-		r.send();
-		return new Promise(function (resolve, reject) {
-			r.addEventListener("load", function (e) {
-				return resolve(e.target);
-			});
-			r.addEventListener("error", reject);
-		});
-	}
-
-	_export("default", xhr);
-
-	return {
-		setters: [],
-		execute: function () {}
-	};
-});
-
-"use strict";
-
-System.register("util/keyboard.js", [], function (_export, _context) {
-	var codes, modifiers, registry;
-
-	function handler(e) {
-		var available = registry.filter(function (reg) {
-			if (reg.type != e.type) {
-				return false;
-			}
-
-			for (var m in reg.modifiers) {
-				if (reg.modifiers[m] != e[m]) {
-					return false;
-				}
-			}
-
-			var code = e.type == "keypress" ? e.charCode : e.keyCode;
-
-			if (reg.code != code) {
-				return false;
-			}
-
-			return true;
-		});
-		var index = available.length;
-
-		if (!index) {
-			return;
-		}
-
-		while (index-- > 0) {
-			var executed = available[index].func();
-
-			if (executed) {
-				return;
-			}
-		}
-	}
-
-	function parse(key) {
-		var result = {
-			func: null,
-			modifiers: {}
-		};
-		key = key.toLowerCase();
-		modifiers.forEach(function (mod) {
-			var key = mod + "Key";
-			result.modifiers[key] = false;
-			var re = new RegExp(mod + "[+-]");
-			key = key.replace(re, function () {
-				result.modifiers[key] = true;
-				return "";
-			});
-		});
-
-		if (key.length == 1) {
-			result.code = key.charCodeAt(0);
-			result.type = "keypress";
-		} else {
-			if (!(key in codes)) {
-				throw new Error("Unknown keyboard code " + key);
-			}
-
-			result.code = codes[key];
-			result.type = "keydown";
-		}
-
-		return result;
-	}
-
-	return {
-		setters: [],
-		execute: function () {
-			codes = {
-				back: 8,
-				tab: 9,
-				enter: 13,
-				esc: 27,
-				space: 32,
-				pgup: 33,
-				pgdn: 34,
-				end: 35,
-				home: 36,
-				left: 37,
-				up: 38,
-				right: 39,
-				down: 40,
-				ins: 45,
-				del: 46,
-				f1: 112,
-				f2: 113,
-				f3: 114,
-				f4: 115,
-				f5: 116,
-				f6: 117,
-				f7: 118,
-				f8: 119,
-				f9: 120,
-				f10: 121,
-				f11: 122,
-				f12: 123
+			ctx = new window.AudioContext();
+			source = ctx.createMediaElementSource(audio);
+			source.connect(ctx.destination);
+			visuals = {
+				spectrum: new Spectrum(ctx),
+				psyco: new Psyco(ctx)
 			};
-			modifiers = ["ctrl", "alt", "shift", "meta"];
-			registry = [];
 
-			function register(func, key) {
-				var item = parse(key);
-				item.func = func;
-				registry.push(item);
+			function play(url) {
+				audio.src = url.href;
+				audio.play();
 			}
 
-			_export("register", register);
+			_export("play", play);
 
-			window.addEventListener("keydown", handler);
-			window.addEventListener("keypress", handler);
-		}
-	};
-});
+			visual = null;
 
-"use strict";
+			function setVisual(name) {
+				var parent = document.querySelector(".analyser");
+				parent.innerHTML = "";
 
-System.register("util/command.js", [], function (_export, _context) {
-	var registry;
-	return {
-		setters: [],
-		execute: function () {
-			registry = {};
-
-			function register(command, func) {
-				registry[command] = {
-					func: func,
-					enabled: true
-				};
-				return command;
-			}
-
-			_export("register", register);
-
-			function enable(command) {
-				Object.keys(registry).filter(function (c) {
-					return c.match(command);
-				}).forEach(function (c) {
-					registry[c].enabled = true;
-				});
-			}
-
-			_export("enable", enable);
-
-			function disable(command) {
-				Object.keys(registry).filter(function (c) {
-					return c.match(command);
-				}).forEach(function (c) {
-					registry[c].enabled = false;
-				});
-			}
-
-			_export("disable", disable);
-
-			function isEnabled(command) {
-				return registry[command].enabled;
-			}
-
-			_export("isEnabled", isEnabled);
-
-			function execute(command) {
-				if (!isEnabled(command)) {
-					return;
+				if (visual) {
+					visual.stop();
+					var oldAudioNode = visual.getAudioNode();
+					source.disconnect(oldAudioNode);
+					oldAudioNode.disconnect(ctx.destination);
+				} else {
+					source.disconnect(ctx.destination);
 				}
 
-				return registry[command].func(command);
+				visual = visuals[name];
+
+				if (visual) {
+					var audioNode = visual.getAudioNode();
+					audioNode.connect(ctx.destination);
+					source.connect(audioNode);
+					parent.appendChild(visual.getNode());
+					visual.start();
+				} else {
+					source.connect(ctx.destination);
+				}
 			}
 
-			_export("execute", execute);
+			_export("setVisual", setVisual);
+
+			audio.addEventListener("ended", function (e) {
+				console.log("[e] ended");
+			});
+			audio.addEventListener("error", function (e) {
+				console.log("[e] error", e);
+			});
+			audio.addEventListener("loadedmetadata", function (e) {
+				console.log("[e] loaded metadata");
+			});
+			audio.addEventListener("playing", function (e) {
+				console.log("[e] playing");
+				visual && visual.start();
+			});
+			audio.addEventListener("pause", function (e) {
+				console.log("[e] pause");
+				visual && visual.stop();
+			});
 		}
 	};
 });
 
 "use strict";
 
-System.register("info.js", ["player.js", "util/albumart.js", "util/xhr.js", "waveform.js", "metadata/metadata.js"], function (_export, _context) {
-	var player, albumart, xhr, Waveform, metadata, document, dom;
+System.register("controls.js", ["player.js", "playlist.js", "platform.js", "util/command.js"], function (_export, _context) {
+	var player, playlist, platform, command, document, repeatModes, repeatTitles, visualModes, visualLabels, visualTitles, settings, dom;
 
-	function leadingZero(num) {
-		return (num > 9 ? "" : "0") + num;
+	function setState(state) {
+		dom.node.className = state;
 	}
 
-	function formatTime(sec) {
-		var s = leadingZero(sec % 60);
-		sec = Math.floor(sec / 60);
-		var m = leadingZero(sec % 60);
-		sec = Math.floor(sec / 60);
-		var h = sec;
-		var parts = [m, s];
-
-		if (h) {
-			parts.unshift(h);
-		}
-
-		return parts.join(":");
+	function setPlaylist(state) {
+		settings.playlist = state;
+		dom.playlist.classList.toggle("on", state);
+		dom.playlist.title = state ? "Playlist visible" : "Playlist hidden";
+		playlist.setVisibility(state);
 	}
 
-	function showTime(current, duration) {
-		var frac = duration ? current / duration : 0;
-		dom.current.style.left = 100 * frac + "%";
-		dom["time-played"].innerHTML = formatTime(Math.round(current));
-		dom["time-remaining"].innerHTML = "&minus;" + formatTime(Math.round(duration) - Math.round(current));
+	function setRepeat(index) {
+		settings.repeat = index;
+		var str = repeatModes[index];
+		dom.repeat.classList.toggle("on", str != "");
+		dom.repeat.querySelector("sub").innerHTML = str;
+		playlist.setRepeat(str);
+		dom.repeat.title = repeatTitles[index];
 	}
 
-	function readFile(url) {
-		return xhr(url).then(function (r) {
-			return r.response;
-		});
+	function setVisual(index) {
+		settings.visual = index;
+		var str = visualModes[index];
+		dom.visual.classList.toggle("on", str != "");
+		player.setVisual(str);
+		dom.visual.querySelector("sub").innerHTML = visualLabels[index];
+		dom.visual.title = visualTitles[index];
 	}
 
-	function showText(title, subtitle) {
-		var h1 = dom.metadata.querySelector("h1");
-		var h2 = dom.metadata.querySelector("h2");
-		h1.innerHTML = "";
-		h1.appendChild(document.createTextNode(title));
-		h1.title = title;
-		h2.innerHTML = "";
-		h2.appendChild(document.createTextNode(subtitle));
-		h2.title = subtitle;
-	}
-
-	function showMetadata(metadata) {
-		var title = metadata && metadata.title || decodeURI(player.audio.src).match(/[^\/]*$/);
-		var subtitle = [];
-		var artist = metadata && (metadata.artist || metadata.albumartist);
-
-		if (artist) {
-			subtitle.push(artist);
-		}
-
-		if (metadata && metadata.album) {
-			subtitle.push(metadata.album);
-		}
-
-		subtitle = subtitle.join(" · ");
-		showText(title, subtitle);
-		albumart.show(metadata.cover, player.audio.src);
+	function sync() {
+		dom.prev.disabled = !playlist.isEnabled("prev");
+		dom.next.disabled = !playlist.isEnabled("next");
 	}
 
 	return {
 		setters: [function (_playerJs) {
 			player = _playerJs;
-		}, function (_utilAlbumartJs) {
-			albumart = _utilAlbumartJs;
-		}, function (_utilXhrJs) {
-			xhr = _utilXhrJs.default;
-		}, function (_waveformJs) {
-			Waveform = _waveformJs.default;
-		}, function (_metadataMetadataJs) {
-			metadata = _metadataMetadataJs.default;
+		}, function (_playlistJs) {
+			playlist = _playlistJs;
+		}, function (_platformJs) {
+			platform = _platformJs;
+		}, function (_utilCommandJs) {
+			command = _utilCommandJs;
 		}],
 		execute: function () {
 			document = window.document;
-			dom = {
-				node: document.querySelector("#info")
+			repeatModes = ["N", "1", ""];
+			repeatTitles = ["Repeat playlist", "Repeat song", "No repeat"];
+			visualModes = ["spectrum", "psyco", ""];
+			visualLabels = ["1", "2", ""];
+			visualTitles = ["Spectrum analyser", "Visual Player 2.0 for DOS", "No visuals"];
+			settings = {
+				repeat: 0,
+				playlist: true,
+				visual: 0
 			};
-			["waveform", "current", "time-played", "time-remaining", "metadata"].forEach(function (name) {
+			dom = {
+				node: document.querySelector("#controls")
+			};
+			["prev", "next", "play", "pause", "repeat", "playlist", "visual"].forEach(function (name) {
 				dom[name] = dom.node.querySelector("." + name);
 			});
-			player.audio.addEventListener("timeupdate", function (e) {
-				showTime(e.target.currentTime, e.target.duration);
+			command.register("playpause", "space", function () {
+				player.audio.paused ? player.audio.play() : player.audio.pause();
 			});
-			player.audio.addEventListener("error", function (e) {
-				albumart.clear();
-				showText("[audio error]", e.message || "");
+			dom.prev.addEventListener("click", function (e) {
+				return playlist.prev();
 			});
-			player.audio.addEventListener("loadedmetadata", function (e) {
-				albumart.clear();
-				showTime(0, 0);
-				dom.waveform.innerHTML = "";
-				readFile(e.target.src).then(function (data) {
-					var m = metadata(data);
-					showMetadata(m);
-					var options = {
-						width: dom.waveform.offsetWidth,
-						height: dom.waveform.offsetHeight
-					};
-					var w = new Waveform(data, options);
-					dom.waveform.appendChild(w.getNode());
-				});
+			dom.next.addEventListener("click", function (e) {
+				return playlist.next();
 			});
-			dom.node.addEventListener("click", function (e) {
-				var rect = dom.node.getBoundingClientRect();
-				var left = e.clientX - rect.left;
-				var frac = left / rect.width;
-				player.audio.currentTime = frac * player.audio.duration;
+			dom.pause.addEventListener("click", function (e) {
+				return player.audio.pause();
 			});
+			dom.play.addEventListener("click", function (e) {
+				return player.audio.play();
+			});
+			dom.repeat.addEventListener("click", function (e) {
+				setRepeat((settings.repeat + 1) % repeatModes.length);
+			});
+			dom.visual.addEventListener("click", function (e) {
+				setVisual((settings.visual + 1) % visualModes.length);
+			});
+			dom.playlist.addEventListener("click", function (e) {
+				setPlaylist(!settings.playlist);
+			});
+			player.audio.addEventListener("playing", function (e) {
+				setState("playing");
+				sync();
+			});
+			player.audio.addEventListener("pause", function (e) {
+				setState("paused");
+			});
+			platform.globalShortcut("MediaPreviousTrack", function () {
+				return playlist.prev();
+			});
+			platform.globalShortcut("MediaNextTrack", function () {
+				return playlist.next();
+			});
+			platform.globalShortcut("MediaPlayPause", function () {
+				return player.audio.paused ? player.audio.play() : player.audio.pause();
+			});
+			setState("paused");
+			setRepeat(0);
+			setPlaylist(true);
+			setVisual(0);
+		}
+	};
+});
+
+"use strict";
+
+System.register("waveform.js", [], function (_export, _context) {
+	var _createClass, ctx, document, Waveform;
+
+	function _classCallCheck(instance, Constructor) {
+		if (!(instance instanceof Constructor)) {
+			throw new TypeError("Cannot call a class as a function");
+		}
+	}
+
+	return {
+		setters: [],
+		execute: function () {
+			_createClass = function () {
+				function defineProperties(target, props) {
+					for (var i = 0; i < props.length; i++) {
+						var descriptor = props[i];
+						descriptor.enumerable = descriptor.enumerable || false;
+						descriptor.configurable = true;
+						if ("value" in descriptor) descriptor.writable = true;
+						Object.defineProperty(target, descriptor.key, descriptor);
+					}
+				}
+
+				return function (Constructor, protoProps, staticProps) {
+					if (protoProps) defineProperties(Constructor.prototype, protoProps);
+					if (staticProps) defineProperties(Constructor, staticProps);
+					return Constructor;
+				};
+			}();
+
+			ctx = new window.AudioContext();
+			document = window.document;
+
+			Waveform = function () {
+				function Waveform(arrayBuffer, options) {
+					_classCallCheck(this, Waveform);
+
+					this._options = Object.assign({
+						width: 600,
+						height: 70,
+						columns: 600,
+						color: "gray"
+					}, options);
+					this._node = document.createElement("canvas");
+					this._node.width = this._options.width;
+					this._node.height = this._options.height;
+					ctx.decodeAudioData(arrayBuffer, this._decoded.bind(this));
+				}
+
+				_createClass(Waveform, [{
+					key: "getNode",
+					value: function getNode() {
+						return this._node;
+					}
+				}, {
+					key: "_decoded",
+					value: function _decoded(audioBuffer) {
+						var channels = [];
+
+						for (var i = 0; i < audioBuffer.numberOfChannels; i++) {
+							channels.push(audioBuffer.getChannelData(i));
+						}
+
+						var ctx = this._node.getContext("2d");
+
+						ctx.beginPath();
+						ctx.moveTo(0, this._node.height);
+						var width = this._options.width / this._options.columns;
+						var samplesPerColumn = Math.floor(channels[0].length / this._options.columns);
+
+						for (var i = 0; i < this._options.columns; i++) {
+							var val = this._computeColumn(channels, i * samplesPerColumn, (i + 1) * samplesPerColumn);
+
+							var height = val * this._node.height;
+							ctx.lineTo(i * width, this._node.height - height);
+						}
+
+						ctx.moveTo(this._node.width, this._node.height);
+						ctx.closePath();
+						var gradient = ctx.createLinearGradient(0, 0, 0, this._node.height);
+						gradient.addColorStop(0, "#8cf");
+						gradient.addColorStop(1, "#38d");
+						ctx.shadowColor = "#000";
+						ctx.shadowBlur = 1;
+						ctx.shadowOffsetY = -1;
+						ctx.fillStyle = gradient;
+						ctx.fill();
+					}
+				}, {
+					key: "_computeColumn",
+					value: function _computeColumn(channels, fromSample, toSample) {
+						var sum = 0;
+
+						for (var i = fromSample; i < toSample; i++) {
+							for (var j = 0; j < channels.length; j++) {
+								sum += Math.abs(channels[j][i]);
+							}
+						}
+
+						var count = (toSample - fromSample) * channels.length;
+						return 3 * sum / count;
+					}
+				}]);
+
+				return Waveform;
+			}();
+
+			_export("default", Waveform);
 		}
 	};
 });
@@ -930,78 +869,6 @@ System.register("metadata/id3v2.js", [], function (_export, _context) {
 
 "use strict";
 
-System.register("metadata/metadata.js", ["./id3v1.js", "./id3v2.js", "./ogg.js", "./mp4.js"], function (_export, _context) {
-	var id3v1, id3v2, ogg, mp4, decoders;
-
-	function metadata(arrayBuffer) {
-		var _iteratorNormalCompletion = true;
-		var _didIteratorError = false;
-		var _iteratorError = undefined;
-
-		try {
-			for (var _iterator = decoders[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-				var decoder = _step.value;
-
-				if (decoder.accepts(arrayBuffer)) {
-					return decoder.decode(arrayBuffer);
-				}
-			}
-		} catch (err) {
-			_didIteratorError = true;
-			_iteratorError = err;
-		} finally {
-			try {
-				if (!_iteratorNormalCompletion && _iterator.return) {
-					_iterator.return();
-				}
-			} finally {
-				if (_didIteratorError) {
-					throw _iteratorError;
-				}
-			}
-		}
-
-		return null;
-	}
-
-	_export("default", metadata);
-
-	return {
-		setters: [function (_id3v1Js) {
-			id3v1 = _id3v1Js;
-		}, function (_id3v2Js) {
-			id3v2 = _id3v2Js;
-		}, function (_oggJs) {
-			ogg = _oggJs;
-		}, function (_mp4Js) {
-			mp4 = _mp4Js;
-		}],
-		execute: function () {
-			DataView.prototype.getString = function (offset, length, encoding) {
-				var decoder = new TextDecoder(encoding);
-				var view = this.buffer.slice(this.byteOffset + offset, this.byteOffset + offset + length);
-				return decoder.decode(view);
-			};
-
-			DataView.prototype.slice = function (start, end) {
-				if (arguments.length < 2) {
-					end = this.byteLength;
-				}
-
-				return new DataView(this.buffer, this.byteOffset + start, end - start);
-			};
-
-			DataView.prototype.getUint32ss = function (offset) {
-				return this.getInt8(offset + 3) & 0x7f | this.getInt8(offset + 2) << 7 | this.getInt8(offset + 1) << 14 | this.getInt8(offset) << 21;
-			};
-
-			decoders = [id3v2, id3v1, ogg, mp4];
-		}
-	};
-});
-
-"use strict";
-
 System.register("metadata/mp4.js", [], function (_export, _context) {
 	var containers;
 
@@ -1106,6 +973,78 @@ System.register("metadata/mp4.js", [], function (_export, _context) {
 			}
 
 			_export("decode", decode);
+		}
+	};
+});
+
+"use strict";
+
+System.register("metadata/metadata.js", ["./id3v1.js", "./id3v2.js", "./ogg.js", "./mp4.js"], function (_export, _context) {
+	var id3v1, id3v2, ogg, mp4, decoders;
+
+	function metadata(arrayBuffer) {
+		var _iteratorNormalCompletion = true;
+		var _didIteratorError = false;
+		var _iteratorError = undefined;
+
+		try {
+			for (var _iterator = decoders[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+				var decoder = _step.value;
+
+				if (decoder.accepts(arrayBuffer)) {
+					return decoder.decode(arrayBuffer);
+				}
+			}
+		} catch (err) {
+			_didIteratorError = true;
+			_iteratorError = err;
+		} finally {
+			try {
+				if (!_iteratorNormalCompletion && _iterator.return) {
+					_iterator.return();
+				}
+			} finally {
+				if (_didIteratorError) {
+					throw _iteratorError;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	_export("default", metadata);
+
+	return {
+		setters: [function (_id3v1Js) {
+			id3v1 = _id3v1Js;
+		}, function (_id3v2Js) {
+			id3v2 = _id3v2Js;
+		}, function (_oggJs) {
+			ogg = _oggJs;
+		}, function (_mp4Js) {
+			mp4 = _mp4Js;
+		}],
+		execute: function () {
+			DataView.prototype.getString = function (offset, length, encoding) {
+				var decoder = new TextDecoder(encoding);
+				var view = this.buffer.slice(this.byteOffset + offset, this.byteOffset + offset + length);
+				return decoder.decode(view);
+			};
+
+			DataView.prototype.slice = function (start, end) {
+				if (arguments.length < 2) {
+					end = this.byteLength;
+				}
+
+				return new DataView(this.buffer, this.byteOffset + start, end - start);
+			};
+
+			DataView.prototype.getUint32ss = function (offset) {
+				return this.getInt8(offset + 3) & 0x7f | this.getInt8(offset + 2) << 7 | this.getInt8(offset + 1) << 14 | this.getInt8(offset) << 21;
+			};
+
+			decoders = [id3v2, id3v1, ogg, mp4];
 		}
 	};
 });
@@ -1229,360 +1168,402 @@ System.register("metadata/ogg.js", [], function (_export, _context) {
 
 "use strict";
 
-System.register("player.js", ["vis/spectrum.js", "vis/psyco.js"], function (_export, _context) {
-	var Spectrum, Psyco, audio, ctx, source, visuals, visual;
+System.register("util/command.js", ["./keyboard.js"], function (_export, _context) {
+	var keyboard, registry;
 	return {
-		setters: [function (_visSpectrumJs) {
-			Spectrum = _visSpectrumJs.default;
-		}, function (_visPsycoJs) {
-			Psyco = _visPsycoJs.default;
+		setters: [function (_keyboardJs) {
+			keyboard = _keyboardJs;
 		}],
 		execute: function () {
-			_export("audio", audio = new window.Audio());
+			registry = {};
 
-			_export("audio", audio);
+			function register(command, keys, func) {
+				registry[command] = {
+					func: func,
+					enabled: true
+				};
 
-			ctx = new window.AudioContext();
-			source = ctx.createMediaElementSource(audio);
-			source.connect(ctx.destination);
-			visuals = {
-				spectrum: new Spectrum(ctx),
-				psyco: new Psyco(ctx)
-			};
-
-			function play(url) {
-				audio.src = url.href;
-				audio.play();
-			}
-
-			_export("play", play);
-
-			visual = null;
-
-			function setVisual(name) {
-				var parent = document.querySelector(".analyser");
-				parent.innerHTML = "";
-
-				if (visual) {
-					visual.stop();
-					var oldAudioNode = visual.getAudioNode();
-					source.disconnect(oldAudioNode);
-					oldAudioNode.disconnect(ctx.destination);
-				} else {
-					source.disconnect(ctx.destination);
+				function wrap() {
+					if (isEnabled(command)) {
+						execute(command);
+						return true;
+					} else {
+						return false;
+					}
 				}
 
-				visual = visuals[name];
-
-				if (visual) {
-					var audioNode = visual.getAudioNode();
-					audioNode.connect(ctx.destination);
-					source.connect(audioNode);
-					parent.appendChild(visual.getNode());
-					visual.start();
-				} else {
-					source.connect(ctx.destination);
-				}
+				[].concat(keys || []).forEach(function (key) {
+					return keyboard.register(wrap, key);
+				});
+				return command;
 			}
 
-			_export("setVisual", setVisual);
+			_export("register", register);
 
-			audio.addEventListener("ended", function (e) {
-				console.log("[e] ended");
-			});
-			audio.addEventListener("error", function (e) {
-				console.log("[e] error", e);
-			});
-			audio.addEventListener("loadedmetadata", function (e) {
-				console.log("[e] loaded metadata");
-			});
-			audio.addEventListener("playing", function (e) {
-				console.log("[e] playing");
-				visual && visual.start();
-			});
-			audio.addEventListener("pause", function (e) {
-				console.log("[e] pause");
-				visual && visual.stop();
-			});
+			function enable(command) {
+				Object.keys(registry).filter(function (c) {
+					return c.match(command);
+				}).forEach(function (c) {
+					registry[c].enabled = true;
+				});
+			}
+
+			_export("enable", enable);
+
+			function disable(command) {
+				Object.keys(registry).filter(function (c) {
+					return c.match(command);
+				}).forEach(function (c) {
+					registry[c].enabled = false;
+				});
+			}
+
+			_export("disable", disable);
+
+			function isEnabled(command) {
+				return registry[command].enabled;
+			}
+
+			_export("isEnabled", isEnabled);
+
+			function execute(command) {
+				if (!isEnabled(command)) {
+					return;
+				}
+
+				return registry[command].func(command);
+			}
+
+			_export("execute", execute);
 		}
 	};
 });
 
 "use strict";
 
-System.register("app.js", ["platform.js", "util/register.js", "util/xhr.js", "player.js", "playlist.js", "info.js", "controls.js"], function (_export, _context) {
-	var platform, register, xhr, player, playlist, info, controls;
+System.register("util/keyboard.js", [], function (_export, _context) {
+	var codes, modifiers, registry;
 
-	function isPlaylist(url) {
-		return url.href.match(/\.m3u8?$/i);
-	}
+	function handler(e) {
+		var available = registry.filter(function (reg) {
+			if (reg.type != e.type) {
+				return false;
+			}
 
-	function getPlaylist(url) {
-		var encoding = url.href.match(/8$/) ? "utf-8" : "windows-1250";
-		var decoder = new TextDecoder(encoding);
-		return xhr(url.href).then(function (r) {
-			var view = new DataView(r.response);
-			var str = decoder.decode(view);
-			var urls = str.split("\n").map(function (row) {
-				return row.replace(/#.*/, "");
-			}).filter(function (row) {
-				return row.match(/\S/);
-			}).map(function (s) {
-				return new window.URL(s, url);
-			});
-			return urls;
+			for (var m in reg.modifiers) {
+				if (reg.modifiers[m] != e[m]) {
+					return false;
+				}
+			}
+
+			var code = e.type == "keypress" ? e.charCode : e.keyCode;
+
+			if (reg.code != code) {
+				return false;
+			}
+
+			return true;
 		});
-	}
+		var index = available.length;
 
-	function playFile(url) {
-		if (isPlaylist(url)) {
-			return getPlaylist(url).then(function (urls) {
-				return Promise.all(urls.map(playFile));
-			});
-		} else {
-			return playSong(url);
-		}
-	}
-
-	function enqueueFile(url) {
-		if (isPlaylist(url)) {
-			return getPlaylist(url).then(function (urls) {
-				return Promise.all(urls.map(enqueueFile));
-			});
-		} else {
-			return enqueueSong(url);
-		}
-	}
-
-	function playSong(url) {
-		var promise = enqueueSong(url);
-
-		if (!playlist.isEnabled("next")) {
-			player.play(url);
+		if (!index) {
+			return;
 		}
 
-		return promise;
-	}
+		while (index-- > 0) {
+			var executed = available[index].func();
 
-	function enqueueSong(url) {
-		playlist.add(url);
-		return Promise.resolve();
-	}
-
-	function toURL(stuff, base) {
-		return stuff instanceof window.URL ? stuff : new window.URL(stuff, base);
-	}
-
-	function processCommand(command) {
-		switch (command) {
-			case "play":
-				player.audio.play();
-				break;
-
-			case "pause":
-				player.audio.pause();
-				break;
-
-			case "prev":
-				playlist.prev();
-				break;
-
-			case "next":
-				playlist.next();
-				break;
-
-			default:
-				alert("Unknown command '" + command + "'.");
-				break;
-		}
-	}
-
-	function processArgs(args, baseURI) {
-		var playlistCleared = false;
-		var command = "p";
-		args.forEach(function (arg) {
-			if (arg.charAt(0) == "-") {
-				command = arg.slice(1);
+			if (executed) {
 				return;
 			}
+		}
+	}
 
-			var url = undefined;
-
-			switch (command) {
-				case "p":
-					url = toURL(arg, baseURI);
-
-					if (!playlistCleared) {
-						playlist.clear();
-						playlistCleared = true;
-						playFile(url);
-					} else {
-						enqueueFile(url);
-					}
-
-					break;
-
-				case "q":
-					url = toURL(arg, baseURI);
-					enqueueFile(url);
-					break;
-
-				case "c":
-					processCommand(arg);
-					break;
-
-				default:
-					alert("Unknown argument '" + arg + "' for command '" + command + "'.");
-					break;
-			}
+	function parse(key) {
+		var result = {
+			func: null,
+			modifiers: {}
+		};
+		key = key.toLowerCase();
+		modifiers.forEach(function (mod) {
+			var key = mod + "Key";
+			result.modifiers[key] = false;
+			var re = new RegExp(mod + "[+-]");
+			key = key.replace(re, function () {
+				result.modifiers[key] = true;
+				return "";
+			});
 		});
+
+		if (key.length == 1) {
+			result.code = key.charCodeAt(0);
+			result.type = "keypress";
+		} else {
+			if (!(key in codes)) {
+				throw new Error("Unknown keyboard code " + key);
+			}
+
+			result.code = codes[key];
+			result.type = "keydown";
+		}
+
+		return result;
 	}
 
 	return {
-		setters: [function (_platformJs) {
-			platform = _platformJs;
-		}, function (_utilRegisterJs) {
-			register = _utilRegisterJs.default;
-		}, function (_utilXhrJs) {
-			xhr = _utilXhrJs.default;
-		}, function (_playerJs) {
-			player = _playerJs;
-		}, function (_playlistJs) {
-			playlist = _playlistJs;
-		}, function (_infoJs) {
-			info = _infoJs;
-		}, function (_controlsJs) {
-			controls = _controlsJs;
-		}],
+		setters: [],
 		execute: function () {
-			register("devtools", "f12", function () {
-				platform.showDevTools();
-			});
-			register("close", "esc", function () {
-				window.close();
-			});
-			platform.onOpen(processArgs);
+			codes = {
+				back: 8,
+				tab: 9,
+				enter: 13,
+				esc: 27,
+				space: 32,
+				pgup: 33,
+				pgdn: 34,
+				end: 35,
+				home: 36,
+				left: 37,
+				up: 38,
+				right: 39,
+				down: 40,
+				ins: 45,
+				del: 46,
+				f1: 112,
+				f2: 113,
+				f3: 114,
+				f4: 115,
+				f5: 116,
+				f6: 117,
+				f7: 118,
+				f8: 119,
+				f9: 120,
+				f10: 121,
+				f11: 122,
+				f12: 123
+			};
+			modifiers = ["ctrl", "alt", "shift", "meta"];
+			registry = [];
 
-			if (platform.argv.length) {
-				processArgs(platform.argv, platform.baseURI);
-			} else {
-				alert("No arguments received, starting in dummy mode. Re-launch with more arguments or control a running instance to play something.");
+			function register(func, key) {
+				var item = parse(key);
+				item.func = func;
+				registry.push(item);
 			}
+
+			_export("register", register);
+
+			window.addEventListener("keydown", handler);
+			window.addEventListener("keypress", handler);
 		}
 	};
 });
 
 "use strict";
 
-System.register("controls.js", ["player.js", "playlist.js", "platform.js", "util/register.js"], function (_export, _context) {
-	var player, playlist, platform, register, document, repeatModes, repeatTitles, visualModes, visualLabels, visualTitles, settings, dom;
+System.register("util/albumart.js", ["util/xhr.js"], function (_export, _context) {
+	var xhr, document, node, files;
 
-	function setState(state) {
-		dom.node.className = state;
+	function doShow(src) {
+		node.style.backgroundImage = "url(" + src + ")";
 	}
 
-	function setPlaylist(state) {
-		settings.playlist = state;
-		dom.playlist.classList.toggle("on", state);
-		dom.playlist.title = state ? "Playlist visible" : "Playlist hidden";
-		playlist.setVisibility(state);
+	function tryFile(url) {
+		return xhr(url).then(function (r) {
+			if (r.status == 404) {
+				throw new Error();
+			}
+
+			return url;
+		});
 	}
 
-	function setRepeat(index) {
-		settings.repeat = index;
-		var str = repeatModes[index];
-		dom.repeat.classList.toggle("on", str != "");
-		dom.repeat.querySelector("sub").innerHTML = str;
-		playlist.setRepeat(str);
-		dom.repeat.title = repeatTitles[index];
+	return {
+		setters: [function (_utilXhrJs) {
+			xhr = _utilXhrJs.default;
+		}],
+		execute: function () {
+			document = window.document;
+			node = document.querySelector("#albumart");
+			files = ["Cover.jpg", "cover.jpg", "Folder.jpg", "folder.jpg"];
+
+			function clear() {
+				node.style.backgroundImage = "";
+			}
+
+			_export("clear", clear);
+
+			function show(metadataCover, audioSrc) {
+				if (metadataCover) {
+					var mC = metadataCover;
+					var src = URL.createObjectURL(new Blob([mC.data], {
+						type: mC.type
+					}));
+					doShow(src);
+					return;
+				}
+
+				var f = files.slice();
+
+				var tryNext = function tryNext() {
+					if (!f.length) {
+						return;
+					}
+
+					try {
+						var url = new window.URL(f.shift(), audioSrc);
+						tryFile(url.href).then(doShow, tryNext);
+					} catch (e) {
+						tryNext();
+					}
+				};
+
+				tryNext();
+			}
+
+			_export("show", show);
+		}
+	};
+});
+
+"use strict";
+
+System.register("util/xhr.js", [], function (_export, _context) {
+	function xhr(url) {
+		var r = new window.XMLHttpRequest();
+		r.responseType = "arraybuffer";
+		r.open("get", url, true);
+		r.send();
+		return new Promise(function (resolve, reject) {
+			r.addEventListener("load", function (e) {
+				return resolve(e.target);
+			});
+			r.addEventListener("error", reject);
+		});
 	}
 
-	function setVisual(index) {
-		settings.visual = index;
-		var str = visualModes[index];
-		dom.visual.classList.toggle("on", str != "");
-		player.setVisual(str);
-		dom.visual.querySelector("sub").innerHTML = visualLabels[index];
-		dom.visual.title = visualTitles[index];
+	_export("default", xhr);
+
+	return {
+		setters: [],
+		execute: function () {}
+	};
+});
+
+"use strict";
+
+System.register("info.js", ["player.js", "util/albumart.js", "util/xhr.js", "waveform.js", "metadata/metadata.js"], function (_export, _context) {
+	var player, albumart, xhr, Waveform, metadata, document, dom;
+
+	function leadingZero(num) {
+		return (num > 9 ? "" : "0") + num;
 	}
 
-	function sync() {
-		dom.prev.disabled = !playlist.isEnabled("prev");
-		dom.next.disabled = !playlist.isEnabled("next");
+	function formatTime(sec) {
+		var s = leadingZero(sec % 60);
+		sec = Math.floor(sec / 60);
+		var m = leadingZero(sec % 60);
+		sec = Math.floor(sec / 60);
+		var h = sec;
+		var parts = [m, s];
+
+		if (h) {
+			parts.unshift(h);
+		}
+
+		return parts.join(":");
+	}
+
+	function showTime(current, duration) {
+		var frac = duration ? current / duration : 0;
+		dom.current.style.left = 100 * frac + "%";
+		dom["time-played"].innerHTML = formatTime(Math.round(current));
+		dom["time-remaining"].innerHTML = "&minus;" + formatTime(Math.round(duration) - Math.round(current));
+	}
+
+	function readFile(url) {
+		return xhr(url).then(function (r) {
+			return r.response;
+		});
+	}
+
+	function showText(title, subtitle) {
+		var h1 = dom.metadata.querySelector("h1");
+		var h2 = dom.metadata.querySelector("h2");
+		h1.innerHTML = "";
+		h1.appendChild(document.createTextNode(title));
+		h1.title = title;
+		h2.innerHTML = "";
+		h2.appendChild(document.createTextNode(subtitle));
+		h2.title = subtitle;
+	}
+
+	function showMetadata(metadata) {
+		var title = metadata && metadata.title || decodeURI(player.audio.src).match(/[^\/]*$/);
+		var subtitle = [];
+		var artist = metadata && (metadata.artist || metadata.albumartist);
+
+		if (artist) {
+			subtitle.push(artist);
+		}
+
+		if (metadata && metadata.album) {
+			subtitle.push(metadata.album);
+		}
+
+		subtitle = subtitle.join(" · ");
+		showText(title, subtitle);
+		albumart.show(metadata.cover, player.audio.src);
 	}
 
 	return {
 		setters: [function (_playerJs) {
 			player = _playerJs;
-		}, function (_playlistJs) {
-			playlist = _playlistJs;
-		}, function (_platformJs) {
-			platform = _platformJs;
-		}, function (_utilRegisterJs) {
-			register = _utilRegisterJs.default;
+		}, function (_utilAlbumartJs) {
+			albumart = _utilAlbumartJs;
+		}, function (_utilXhrJs) {
+			xhr = _utilXhrJs.default;
+		}, function (_waveformJs) {
+			Waveform = _waveformJs.default;
+		}, function (_metadataMetadataJs) {
+			metadata = _metadataMetadataJs.default;
 		}],
 		execute: function () {
 			document = window.document;
-			repeatModes = ["N", "1", ""];
-			repeatTitles = ["Repeat playlist", "Repeat song", "No repeat"];
-			visualModes = ["spectrum", "psyco", ""];
-			visualLabels = ["1", "2", ""];
-			visualTitles = ["Spectrum analyser", "Visual Player 2.0 for DOS", "No visuals"];
-			settings = {
-				repeat: 0,
-				playlist: true,
-				visual: 0
-			};
 			dom = {
-				node: document.querySelector("#controls")
+				node: document.querySelector("#info")
 			};
-			["prev", "next", "play", "pause", "repeat", "playlist", "visual"].forEach(function (name) {
+			["waveform", "current", "time-played", "time-remaining", "metadata"].forEach(function (name) {
 				dom[name] = dom.node.querySelector("." + name);
 			});
-			register("playpause", "space", function () {
-				player.audio.paused ? player.audio.play() : player.audio.pause();
+			player.audio.addEventListener("timeupdate", function (e) {
+				showTime(e.target.currentTime, e.target.duration);
 			});
-			dom.prev.addEventListener("click", function (e) {
-				return playlist.prev();
+			player.audio.addEventListener("error", function (e) {
+				albumart.clear();
+				showText("[audio error]", e.message || "");
 			});
-			dom.next.addEventListener("click", function (e) {
-				return playlist.next();
+			player.audio.addEventListener("loadedmetadata", function (e) {
+				albumart.clear();
+				showTime(0, 0);
+				dom.waveform.innerHTML = "";
+				readFile(e.target.src).then(function (data) {
+					var m = metadata(data);
+					showMetadata(m);
+					var options = {
+						width: dom.waveform.offsetWidth,
+						height: dom.waveform.offsetHeight
+					};
+					var w = new Waveform(data, options);
+					dom.waveform.appendChild(w.getNode());
+				});
 			});
-			dom.pause.addEventListener("click", function (e) {
-				return player.audio.pause();
+			dom.node.addEventListener("click", function (e) {
+				var rect = dom.node.getBoundingClientRect();
+				var left = e.clientX - rect.left;
+				var frac = left / rect.width;
+				player.audio.currentTime = frac * player.audio.duration;
 			});
-			dom.play.addEventListener("click", function (e) {
-				return player.audio.play();
-			});
-			dom.repeat.addEventListener("click", function (e) {
-				setRepeat((settings.repeat + 1) % repeatModes.length);
-			});
-			dom.visual.addEventListener("click", function (e) {
-				setVisual((settings.visual + 1) % visualModes.length);
-			});
-			dom.playlist.addEventListener("click", function (e) {
-				setPlaylist(!settings.playlist);
-			});
-			player.audio.addEventListener("playing", function (e) {
-				setState("playing");
-				sync();
-			});
-			player.audio.addEventListener("pause", function (e) {
-				setState("paused");
-			});
-			platform.globalShortcut("MediaPreviousTrack", function () {
-				return playlist.prev();
-			});
-			platform.globalShortcut("MediaNextTrack", function () {
-				return playlist.next();
-			});
-			platform.globalShortcut("MediaPlayPause", function () {
-				return player.audio.paused ? player.audio.play() : player.audio.pause();
-			});
-			setState("paused");
-			setRepeat(0);
-			setPlaylist(true);
-			setVisual(0);
 		}
 	};
 });
@@ -1687,6 +1668,131 @@ System.register("vis/vis.js", [], function (_export, _context) {
 			}();
 
 			_export("default", Vis);
+		}
+	};
+});
+
+"use strict";
+
+System.register("vis/spectrum.js", ["./vis.js"], function (_export, _context) {
+	var Vis, _createClass, Spectrum;
+
+	function _classCallCheck(instance, Constructor) {
+		if (!(instance instanceof Constructor)) {
+			throw new TypeError("Cannot call a class as a function");
+		}
+	}
+
+	function _possibleConstructorReturn(self, call) {
+		if (!self) {
+			throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
+		}
+
+		return call && (typeof call === "object" || typeof call === "function") ? call : self;
+	}
+
+	function _inherits(subClass, superClass) {
+		if (typeof superClass !== "function" && superClass !== null) {
+			throw new TypeError("Super expression must either be null or a function, not " + typeof superClass);
+		}
+
+		subClass.prototype = Object.create(superClass && superClass.prototype, {
+			constructor: {
+				value: subClass,
+				enumerable: false,
+				writable: true,
+				configurable: true
+			}
+		});
+		if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass;
+	}
+
+	return {
+		setters: [function (_visJs) {
+			Vis = _visJs.default;
+		}],
+		execute: function () {
+			_createClass = function () {
+				function defineProperties(target, props) {
+					for (var i = 0; i < props.length; i++) {
+						var descriptor = props[i];
+						descriptor.enumerable = descriptor.enumerable || false;
+						descriptor.configurable = true;
+						if ("value" in descriptor) descriptor.writable = true;
+						Object.defineProperty(target, descriptor.key, descriptor);
+					}
+				}
+
+				return function (Constructor, protoProps, staticProps) {
+					if (protoProps) defineProperties(Constructor.prototype, protoProps);
+					if (staticProps) defineProperties(Constructor, staticProps);
+					return Constructor;
+				};
+			}();
+
+			Spectrum = function (_Vis) {
+				_inherits(Spectrum, _Vis);
+
+				function Spectrum(audioContext, options) {
+					_classCallCheck(this, Spectrum);
+
+					var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Spectrum).call(this, audioContext));
+
+					_this._options = Object.assign({
+						bins: 32
+					}, options);
+					_this._analyser.fftSize = 2 * _this._options.bins;
+					_this._analyser.minDecibels = -130;
+					_this._data = new Uint8Array(_this._analyser.frequencyBinCount);
+					_this._ctx = _this._node.getContext("2d");
+					return _this;
+				}
+
+				_createClass(Spectrum, [{
+					key: "_resize",
+					value: function _resize() {
+						this._node.width = this._node.clientWidth;
+						this._node.height = this._node.clientHeight;
+
+						var gradient = this._ctx.createLinearGradient(0, 0, 0, this._node.height);
+
+						gradient.addColorStop(0, "red");
+						gradient.addColorStop(0.5, "yellow");
+						gradient.addColorStop(1, "green");
+						this._ctx.fillStyle = gradient;
+					}
+				}, {
+					key: "_draw",
+					value: function _draw() {
+						if (this._node.width != this._node.clientWidth || this._node.height != this._node.clientHeight) {
+							this._resize();
+						}
+
+						this._analyser.getByteFrequencyData(this._data);
+
+						this._ctx.clearRect(0, 0, this._node.width, this._node.height);
+
+						for (var i = 0; i < this._data.length; i++) {
+							this._drawColumn(this._data[i], i);
+						}
+					}
+				}, {
+					key: "_drawColumn",
+					value: function _drawColumn(value, index) {
+						var boxSize = Math.ceil(this._node.width / this._options.bins);
+						var count = Math.round(this._node.height / boxSize * (value / 255));
+						var padding = 2;
+
+						for (var i = 0; i < count; i++) {
+							this._ctx.fillRect(padding + index * boxSize, this._node.height - i * boxSize, boxSize - padding, boxSize - padding);
+						}
+					}
+				}]);
+
+				return Spectrum;
+			}(Vis);
+
+			_export("default", Spectrum);
 		}
 	};
 });
@@ -1850,131 +1956,6 @@ System.register("vis/psyco.js", ["./vis.js"], function (_export, _context) {
 			}(Vis);
 
 			_export("default", Psyco);
-		}
-	};
-});
-
-"use strict";
-
-System.register("vis/spectrum.js", ["./vis.js"], function (_export, _context) {
-	var Vis, _createClass, Spectrum;
-
-	function _classCallCheck(instance, Constructor) {
-		if (!(instance instanceof Constructor)) {
-			throw new TypeError("Cannot call a class as a function");
-		}
-	}
-
-	function _possibleConstructorReturn(self, call) {
-		if (!self) {
-			throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
-		}
-
-		return call && (typeof call === "object" || typeof call === "function") ? call : self;
-	}
-
-	function _inherits(subClass, superClass) {
-		if (typeof superClass !== "function" && superClass !== null) {
-			throw new TypeError("Super expression must either be null or a function, not " + typeof superClass);
-		}
-
-		subClass.prototype = Object.create(superClass && superClass.prototype, {
-			constructor: {
-				value: subClass,
-				enumerable: false,
-				writable: true,
-				configurable: true
-			}
-		});
-		if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass;
-	}
-
-	return {
-		setters: [function (_visJs) {
-			Vis = _visJs.default;
-		}],
-		execute: function () {
-			_createClass = function () {
-				function defineProperties(target, props) {
-					for (var i = 0; i < props.length; i++) {
-						var descriptor = props[i];
-						descriptor.enumerable = descriptor.enumerable || false;
-						descriptor.configurable = true;
-						if ("value" in descriptor) descriptor.writable = true;
-						Object.defineProperty(target, descriptor.key, descriptor);
-					}
-				}
-
-				return function (Constructor, protoProps, staticProps) {
-					if (protoProps) defineProperties(Constructor.prototype, protoProps);
-					if (staticProps) defineProperties(Constructor, staticProps);
-					return Constructor;
-				};
-			}();
-
-			Spectrum = function (_Vis) {
-				_inherits(Spectrum, _Vis);
-
-				function Spectrum(audioContext, options) {
-					_classCallCheck(this, Spectrum);
-
-					var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Spectrum).call(this, audioContext));
-
-					_this._options = Object.assign({
-						bins: 32
-					}, options);
-					_this._analyser.fftSize = 2 * _this._options.bins;
-					_this._analyser.minDecibels = -130;
-					_this._data = new Uint8Array(_this._analyser.frequencyBinCount);
-					_this._ctx = _this._node.getContext("2d");
-					return _this;
-				}
-
-				_createClass(Spectrum, [{
-					key: "_resize",
-					value: function _resize() {
-						this._node.width = this._node.clientWidth;
-						this._node.height = this._node.clientHeight;
-
-						var gradient = this._ctx.createLinearGradient(0, 0, 0, this._node.height);
-
-						gradient.addColorStop(0, "red");
-						gradient.addColorStop(0.5, "yellow");
-						gradient.addColorStop(1, "green");
-						this._ctx.fillStyle = gradient;
-					}
-				}, {
-					key: "_draw",
-					value: function _draw() {
-						if (this._node.width != this._node.clientWidth || this._node.height != this._node.clientHeight) {
-							this._resize();
-						}
-
-						this._analyser.getByteFrequencyData(this._data);
-
-						this._ctx.clearRect(0, 0, this._node.width, this._node.height);
-
-						for (var i = 0; i < this._data.length; i++) {
-							this._drawColumn(this._data[i], i);
-						}
-					}
-				}, {
-					key: "_drawColumn",
-					value: function _drawColumn(value, index) {
-						var boxSize = Math.ceil(this._node.width / this._options.bins);
-						var count = Math.round(this._node.height / boxSize * (value / 255));
-						var padding = 2;
-
-						for (var i = 0; i < count; i++) {
-							this._ctx.fillRect(padding + index * boxSize, this._node.height - i * boxSize, boxSize - padding, boxSize - padding);
-						}
-					}
-				}]);
-
-				return Spectrum;
-			}(Vis);
-
-			_export("default", Spectrum);
 		}
 	};
 });

@@ -1,7 +1,7 @@
 import * as player from "player.js";
 import * as playlist from "playlist.js";
 import * as platform from "platform.js";
-import register from "util/register.js";
+import * as command from "util/command.js";
 
 const document = window.document;
 
@@ -25,7 +25,7 @@ let dom = {
 	dom[name] = dom.node.querySelector(`.${name}`);
 });
 
-register("playpause", "space", () => {
+command.register("playpause", "space", () => {
 	player.audio.paused ? player.audio.play() : player.audio.pause();
 });
 
