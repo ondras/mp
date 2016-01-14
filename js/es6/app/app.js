@@ -6,11 +6,11 @@ import * as playlist from "playlist.js";
 import * as info from "info.js";
 import * as controls from "controls.js";
 
-command.register("devtools", "f12", () => {
+command.register("app:devtools", "f12", () => {
 	platform.showDevTools();
 });
 
-command.register("close", "esc", () => {
+command.register("app:close", "esc", () => {
 	window.close();
 });
 
@@ -51,7 +51,7 @@ function enqueueFile(url) {
 
 function playSong(url) {
 	let promise = enqueueSong(url);
-	if (!playlist.isEnabled("next")) { // only when first, FIXME detection stinks
+	if (!command.isEnabled("playlist:next")) { // play the first one enqueued
 		player.play(url);
 	}
 	return promise;
@@ -66,15 +66,14 @@ function toURL(stuff, base) {
 	return (stuff instanceof window.URL ? stuff : new window.URL(stuff, base));
 }
 
-function processCommand(command) {
-	switch (command) {
-		case "play": player.audio.play(); break;
-		case "pause": player.audio.pause(); break;
+function processCommand(c) {
+	switch (c) {
+		case "play": command.execute("player:play"); break;
+		case "pause": command.execute("player:pause"); break;
+		case "prev": command.execute("playlist:prev"); break; 
+		case "next": command.execute("playlist:next"); break; 
 
-		case "prev": playlist.prev(); break; 
-		case "next": playlist.next(); break; 
-
-		default: alert(`Unknown command '${command}'.`); break;
+		default: alert(`Unknown command '${c}'.`); break;
 	}
 }
 

@@ -1,5 +1,6 @@
 import Spectrum from "vis/spectrum.js";
 import Psyco from "vis/psyco.js";
+import * as command from "util/command.js";
 
 export const audio = new window.Audio();
 const ctx = new window.AudioContext();
@@ -11,7 +12,14 @@ const visuals = {
 	psyco: new Psyco(ctx)
 }
 
+command.register("player:play", null, () => audio.play());
+command.register("player:pause", null, () => audio.pause());
+command.register("player:toggle", "space", () => {
+	audio.paused ? audio.play() : audio.pause();
+});
+
 export function play(url) {
+	command.disable("player:");
 	audio.src = url.href;
 	audio.play();
 }
@@ -44,7 +52,6 @@ export function setVisual(name) {
 	}
 }
 
-
 audio.addEventListener("ended", e => {
 	console.log("[e] ended");
 });
@@ -55,14 +62,19 @@ audio.addEventListener("error", e => {
 
 audio.addEventListener("loadedmetadata", e => {
 	console.log("[e] loaded metadata");
+	command.enable("player:toggle");
 });
 
 audio.addEventListener("playing", e => {
 	console.log("[e] playing");
+	command.disable("player:play");
+	command.enable("player:pause");
 	visual && visual.start();
 });
 
 audio.addEventListener("pause", e => {
 	console.log("[e] pause");
+	command.disable("player:pause");
+	command.enable("player:play");
 	visual && visual.stop();
 });

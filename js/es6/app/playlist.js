@@ -1,5 +1,6 @@
 import * as player from "player.js";
 import * as platform from "platform.js";
+import * as command from "util/command.js";
 
 const document = window.document;
 const node = document.querySelector("#playlist");
@@ -11,10 +12,16 @@ let repeat = "";
 let height = 0;
 let dragging = null;
 
-function activate() {
+function highlight() {
 	items.forEach(item => {
 		item.node.classList.toggle("current", item == current);
 	});
+}
+
+function updateCommands() {
+	let index = items.indexOf(current);
+	command[index > 0 ? "enable" : "disable"]("playlist:prev");
+	command[index + 1 < items.length ? "enable" : "disable"]("playlist:next");
 }
 
 function nodeToIndex(node) {
@@ -28,8 +35,13 @@ function nodeToIndex(node) {
 function playByIndex(index) {
 	current = items[index];
 	player.play(current.url);
-	activate();
+	highlight();
+	updateCommands();
 }
+
+command.register("playlist:prev", null, () => playByIndex(items.indexOf(current)-1));
+command.register("playlist:next", null, () => playByIndex(items.indexOf(current)+1));
+command.disable("playlist:");
 
 export function setRepeat(r) {
 	repeat = r;
@@ -43,21 +55,6 @@ export function setVisibility(visible) {
 		height = node.offsetHeight;
 		node.style.display = "none";
 		platform.resizeBy(0, -height);
-	}
-}
-
-export function isEnabled(command) {
-	let index = items.indexOf(current);
-	switch (command) {
-		case "prev":
-			return (index > 0);
-		break;
-
-		case "next":
-			return (index+1 < items.length);
-		break;
-
-		/* FIXME default? */
 	}
 }
 
@@ -84,18 +81,9 @@ export function add(url) {
 
 	if (items.length == 1) { 
 		current = items[0];
-		activate();
+		highlight();
 	}
-}
-
-export function prev() {
-	if (!isEnabled("prev")) { return; }
-	playByIndex(items.indexOf(current)-1);
-}
-
-export function next() {
-	if (!isEnabled("next")) { return; }
-	playByIndex(items.indexOf(current)+1);
+	updateCommands();
 }
 
 list.addEventListener("click", e => {
@@ -112,6 +100,7 @@ list.addEventListener("click", e => {
 	if (remove) {
 		let item = items.splice(index, 1)[0];
 		item.node.parentNode.removeChild(item.node);
+		updateCommands();
 	} else {
 		playByIndex(index);
 	}
@@ -170,4 +159,6 @@ node.querySelector("button.random").addEventListener("click", e => {
 
 	list.innerHTML = "";
 	items.forEach(item => list.appendChild(item.node));
+
+	updateCommands();
 });

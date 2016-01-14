@@ -2,6 +2,7 @@ import * as player from "player.js";
 import * as playlist from "playlist.js";
 import * as platform from "platform.js";
 import * as command from "util/command.js";
+import * as pubsub from "util/pubsub.js";
 
 const document = window.document;
 
@@ -24,14 +25,6 @@ let dom = {
 ["prev", "next", "play", "pause", "repeat", "playlist", "visual"].forEach(name => {
 	dom[name] = dom.node.querySelector(`.${name}`);
 });
-
-command.register("playpause", "space", () => {
-	player.audio.paused ? player.audio.play() : player.audio.pause();
-});
-
-function setState(state) {
-	dom.node.className = state;
-}
 
 function setPlaylist(state) {
 	settings.playlist = state;
@@ -63,14 +56,15 @@ function setVisual(index) {
 }
 
 function sync() {
-	dom.prev.disabled = !playlist.isEnabled("prev");
-	dom.next.disabled = !playlist.isEnabled("next");
+	dom.prev.disabled = !command.isEnabled("playlist:prev");
+	dom.next.disabled = !command.isEnabled("playlist:next");
+	dom.node.className = command.isEnabled("player:play") ? "paused" : "playing";
 }
 
-dom.prev.addEventListener("click", e => playlist.prev());
-dom.next.addEventListener("click", e => playlist.next());
-dom.pause.addEventListener("click", e => player.audio.pause());
-dom.play.addEventListener("click", e => player.audio.play());
+dom.prev.addEventListener("click", e => command.execute("playlist:prev"));
+dom.next.addEventListener("click", e => command.execute("playlist:next"));
+dom.pause.addEventListener("click", e => command.execute("player:pause"));
+dom.play.addEventListener("click", e => command.execute("player:play"));
 
 dom.repeat.addEventListener("click", e => {
 	setRepeat((settings.repeat + 1) % repeatModes.length);
@@ -84,20 +78,14 @@ dom.playlist.addEventListener("click", e => {
 	setPlaylist(!settings.playlist);
 });
 
-player.audio.addEventListener("playing", e => {
-	setState("playing");
-	sync();
-});
+platform.globalShortcut("MediaPreviousTrack", () => command.execute("playlist:prev"));
+platform.globalShortcut("MediaNextTrack", () => command.execute("playlist:next"));
+platform.globalShortcut("MediaPlayPause", () => command.execute("player:toggle"));
 
-player.audio.addEventListener("pause", e => {
-	setState("paused");
-});
+pubsub.subscribe("command-enable", sync);
+pubsub.subscribe("command-disable", sync);
 
-platform.globalShortcut("MediaPreviousTrack", () => playlist.prev());
-platform.globalShortcut("MediaNextTrack", () => playlist.next());
-platform.globalShortcut("MediaPlayPause", () => player.audio.paused ? player.audio.play() : player.audio.pause());
-
-setState("paused");
+sync();
 setRepeat(0);
 setPlaylist(true);
 setVisual(0);

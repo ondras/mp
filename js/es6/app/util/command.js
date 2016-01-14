@@ -1,40 +1,40 @@
 import * as keyboard from "./keyboard.js";
+import * as pubsub from "./pubsub.js";
 
 let registry = {};
 
 export function register(command, keys, func) {
-	registry[command] = {
-		func: func,
-		enabled: true
-	};
-
 	function wrap() {
 		if (isEnabled(command)) {
-			execute(command);
+			func(command);
 			return true;
 		} else {
 			return false;
 		}
 	}
+
+	registry[command] = {
+		func: wrap,
+		enabled: true
+	};
+
 	[].concat(keys || []).forEach(key => keyboard.register(wrap, key));
 
 	return command;
 }
 
 export function enable(command) {
-	Object.keys(registry).filter(function(c) {
-		return c.match(command);
-	}).forEach(function(c) {
-		registry[c].enabled = true;
-	});
+	Object.keys(registry)
+		.filter(c => c.match(command))
+		.forEach(c => registry[c].enabled = true);
+	pubsub.publish("command-enable", command);
 }
 
 export function disable(command) {
-	Object.keys(registry).filter(function(c) {
-		return c.match(command);
-	}).forEach(function(c) {
-		registry[c].enabled = false;
-	});
+	Object.keys(registry)
+		.filter(c => c.match(command))
+		.forEach(c => registry[c].enabled = false);
+	pubsub.publish("command-disable", command);
 }
 
 export function isEnabled(command) {
@@ -42,6 +42,5 @@ export function isEnabled(command) {
 }
 
 export function execute(command) {
-	if (!isEnabled(command)) { return; }
-	return registry[command].func(command);
+	return registry[command].func();
 }
