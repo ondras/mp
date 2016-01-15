@@ -100,7 +100,7 @@ System.register("waveform.js", [], function (_export, _context) {
 						}
 
 						var count = (toSample - fromSample) * channels.length;
-						return 3 * sum / count;
+						return 2 * sum / count;
 					}
 				}]);
 

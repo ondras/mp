@@ -64,6 +64,6 @@ export default class Waveform {
 		}
 
 		var count = (toSample - fromSample) * channels.length;
-		return 3*sum/count;
+		return 2*sum/count;
 	}
 }
