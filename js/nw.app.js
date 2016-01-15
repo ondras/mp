@@ -108,7 +108,7 @@ System.register("waveform.js", [], function (_export, _context) {
 							ctx.lineTo(i * width, this._node.height - height);
 						}
 
-						ctx.moveTo(this._node.width, this._node.height);
+						ctx.lineTo(this._node.width, this._node.height);
 						ctx.closePath();
 						var gradient = ctx.createLinearGradient(0, 0, 0, this._node.height);
 						gradient.addColorStop(0, "#8cf");
@@ -875,7 +875,7 @@ System.register("metadata/id3v2.js", [], function (_export, _context) {
 		return data.slice(0, writeIndex);
 	}
 
-	function parse(data) {
+	function parse(data, version) {
 		var result = {};
 		var offset = 0;
 
@@ -887,7 +887,7 @@ System.register("metadata/id3v2.js", [], function (_export, _context) {
 			}
 
 			var flags = data.getUint8(offset + 9);
-			var size = data.getUint32ss(offset + 4);
+			var size = version == 4 ? data.getUint32ss(offset + 4) : data.getUint32(offset + 4);
 			offset += 10;
 			var value = data.slice(offset, offset + size);
 
@@ -946,6 +946,7 @@ System.register("metadata/id3v2.js", [], function (_export, _context) {
 			function decode(arrayBuffer) {
 				var headerLength = 10;
 				var header = new DataView(arrayBuffer, 0, headerLength + 4);
+				var version = header.getUint8(3);
 				var length = header.getUint32ss(6);
 				var mask = header.getUint8(5);
 
@@ -956,7 +957,7 @@ System.register("metadata/id3v2.js", [], function (_export, _context) {
 				}
 
 				var data = new DataView(arrayBuffer, headerLength, length);
-				return parse(data);
+				return parse(data, version);
 			}
 
 			_export("decode", decode);

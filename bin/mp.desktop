@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=mp
+Comment=Music player
+Exec=/absolute/path/to/the/mp.sh %F
+Icon=/absolute/path/to/the/icon.png
+MimeType=audio/wav;audio/mpeg;audio/mp4;audio/ogg;audio/aac;audio/x-mpegurl;
+Categories=AudioVideo;Audio;

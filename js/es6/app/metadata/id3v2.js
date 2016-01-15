@@ -6,6 +6,7 @@ export function accepts(arrayBuffer) {
 export function decode(arrayBuffer) {
 	let headerLength = 10;
 	let header = new DataView(arrayBuffer, 0, headerLength + 4); // space for extended header length
+	let version = header.getUint8(3);
 	let length = header.getUint32ss(6);
 
 	let mask = header.getUint8(5);
@@ -16,7 +17,7 @@ export function decode(arrayBuffer) {
 	}
 
 	let data = new DataView(arrayBuffer, headerLength, length);
-	return parse(data);
+	return parse(data, version);
 }
 
 function getEncoding(byte) {
@@ -87,7 +88,7 @@ function removeUnsync(data) {
 	return data.slice(0, writeIndex);
 }
 
-function parse(data) {
+function parse(data, version) {
 	let result = {};
 
 	let offset = 0;
@@ -96,7 +97,7 @@ function parse(data) {
 		if (!id.charAt(0).match(/[A-Z]/)) { break; }
 
 		let flags = data.getUint8(offset+9);
-		let size = data.getUint32ss(offset+4);
+		let size = (version == 4 ? data.getUint32ss(offset+4) : data.getUint32(offset+4));
 		
 		offset += 10;
 		let value = data.slice(offset, offset + size);

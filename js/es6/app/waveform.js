@@ -39,7 +39,7 @@ export default class Waveform {
 			ctx.lineTo(i*width, this._node.height-height);
 		}
 
-		ctx.moveTo(this._node.width, this._node.height);
+		ctx.lineTo(this._node.width, this._node.height);
 		ctx.closePath();
 
 		var gradient = ctx.createLinearGradient(0, 0, 0, this._node.height);
