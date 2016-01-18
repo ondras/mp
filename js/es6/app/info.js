@@ -64,7 +64,7 @@ function showMetadata(metadata) {
 
 	showText(title, subtitle);
 	
-	albumart.show(metadata.cover, player.audio.src);
+	albumart.show(metadata && metadata.cover, player.audio.src);
 }
 
 player.audio.addEventListener("timeupdate", function(e) {

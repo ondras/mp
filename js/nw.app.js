@@ -729,7 +729,7 @@ System.register("info.js", ["player.js", "util/albumart.js", "util/xhr.js", "wav
 
 		subtitle = subtitle.join(" · ");
 		showText(title, subtitle);
-		albumart.show(metadata.cover, player.audio.src);
+		albumart.show(metadata && metadata.cover, player.audio.src);
 	}
 
 	return {
