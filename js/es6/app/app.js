@@ -132,6 +132,6 @@ window.addEventListener("drop", e => {
 	e.preventDefault();
 	Array.from(e.dataTransfer.files).forEach(file => {
 		let url = window.URL.createObjectURL(file);
-		enqueueFile(new URL(url));
+		enqueueFile(new window.URL(url));
 	});
 });

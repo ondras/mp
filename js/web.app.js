@@ -1501,7 +1501,7 @@ System.register("app.js", ["platform.js", "util/command.js", "util/xhr.js", "pla
 				e.preventDefault();
 				Array.from(e.dataTransfer.files).forEach(function (file) {
 					var url = window.URL.createObjectURL(file);
-					enqueueFile(new URL(url));
+					enqueueFile(new window.URL(url));
 				});
 			});
 		}
