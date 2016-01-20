@@ -121,5 +121,17 @@ platform.onOpen(processArgs);
 if (platform.argv.length) {
 	processArgs(platform.argv, platform.baseURI);
 } else {
-	alert("No arguments received, starting in dummy mode. Re-launch with more arguments or control a running instance to play something.");
+	alert("No arguments received, starting in dummy mode. Re-launch with more arguments, drop some files or control a running instance to play something.");
 }
+
+window.addEventListener("dragover", e => {
+	if (e.dataTransfer.files.length) { e.preventDefault(); }
+});
+
+window.addEventListener("drop", e => {
+	e.preventDefault();
+	Array.from(e.dataTransfer.files).forEach(file => {
+		let url = window.URL.createObjectURL(file);
+		enqueueFile(new URL(url));
+	});
+});
