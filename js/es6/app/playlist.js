@@ -132,15 +132,13 @@ player.audio.addEventListener("ended", e => {
 
 		case "N":
 			if (index+1 < items.length) {
-				next();
+				playByIndex(index+1);
 			} else {
 				playByIndex(0);
 			}
 		break;
 
-		case "":
-			if (index+1 < items.length) { next(); }
-		break;
+		case "": break;
 	}
 });
 

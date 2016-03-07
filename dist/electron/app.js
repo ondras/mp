@@ -275,7 +275,7 @@ System.register("playlist.js", ["player.js", "platform.js", "util/command.js"], 
 
 					case "N":
 						if (index + 1 < items.length) {
-							next();
+							playByIndex(index + 1);
 						} else {
 							playByIndex(0);
 						}
@@ -283,10 +283,6 @@ System.register("playlist.js", ["player.js", "platform.js", "util/command.js"], 
 						break;
 
 					case "":
-						if (index + 1 < items.length) {
-							next();
-						}
-
 						break;
 				}
 			});
