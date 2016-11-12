@@ -1,17 +1,16 @@
 (function () {
 'use strict';
 
-const remote = require("remote");
+const {remote} = require("electron");
 
 const argv = remote.process.argv.slice(2);
+const baseURI = `file://${require("process").cwd()}/`;
 
 function showDevTools() {
    	remote.getCurrentWindow().openDevTools();
 }
 
 
-
-const baseURI = `file://${require("process").cwd()}/`;
 
 function onOpen(callback) {
 	require("electron").ipcRenderer.on("open", (event, args, baseURI) => callback(args, baseURI));

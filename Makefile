@@ -37,6 +37,6 @@ web:
 	ln -f -r -s sample $(WEB)
 
 watch: all
-	while inotifywait -e MODIFY -r html bin css/less js/es6 js/polyfills ; do make $^ ; done
+	while inotifywait -e MODIFY -r html bin css/less js/src ; do make $^ ; done
 
 .PHONY: all electron nw web watch

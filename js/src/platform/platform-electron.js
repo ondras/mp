@@ -1,6 +1,7 @@
-const remote = require("remote");
+const {remote} = require("electron");
 
 export const argv = remote.process.argv.slice(2);
+export const baseURI = `file://${require("process").cwd()}/`;
 
 export function showDevTools() {
    	remote.getCurrentWindow().openDevTools();
@@ -10,8 +11,6 @@ export function setFullscreen(fullscreen) {
    	remote.getCurrentWindow().setFullScreen(fullscreen);
    	return fullscreen;
 }
-
-export const baseURI = `file://${require("process").cwd()}/`;
 
 export function onOpen(callback) {
 	require("electron").ipcRenderer.on("open", (event, args, baseURI) => callback(args, baseURI));

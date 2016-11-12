@@ -1,6 +1,5 @@
-let app = require("app");
-let BrowserWindow = require("browser-window");
-let pkg = require("./package.json");
+const {app, BrowserWindow} = require("electron");
+const pkg = require("./package.json");
 let mainWindow = null;
 
 let shouldQuit = app.makeSingleInstance((commandLine, workingDirectory) => {
