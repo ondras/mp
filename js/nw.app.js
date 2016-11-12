@@ -1,21 +1,22 @@
 (function () {
 'use strict';
 
-const gui = window.nwDispatcher.nwGui;
+const shortcutAliases = {
+	"MediaPreviousTrack": "MediaPrevTrack"
+};
 
-const argv = gui.App.argv;
+const argv = nw.App.argv;
+const baseURI = `file://${require("process").cwd()}/`;
 
 function showDevTools() {
-	gui.Window.get().showDevTools();
+	nw.Window.get().showDevTools();
 }
 
 
 
-const baseURI = `file://${require("process").cwd()}/`;
-
 function onOpen(callback) {
-	// FIXME cmdline is incorrectly handling spaces :/
-	gui.App.on("open", cmdLine => { 
+	// FIXME cmdline is incorrectly handling spaces, also it is totally bogus :/
+	nw.App.on("open", cmdLine => { 
 		let parts = cmdLine.split(/\s+/);
 		let args = parts.slice(2);
 		args = [args.join(" ")];
@@ -24,16 +25,19 @@ function onOpen(callback) {
 }
 
 function globalShortcut(shortcut, cb) {
+	if (shortcut in shortcutAliases) { shortcut = shortcutAliases[shortcut]; }
+
 	let cfg = {
 		key: shortcut,
 		active: cb
 	};
-	let s = new gui.Shortcut(cfg);
-	gui.App.registerGlobalHotKey(s);
+
+	let s = new nw.Shortcut(cfg);
+	nw.App.registerGlobalHotKey(s);
 }
 
 function resizeBy(dw, dh) {
-	gui.Window.get().resizeBy(dw, dh);
+	nw.Window.get().resizeBy(dw, dh);
 }
 
 const codes = {
@@ -412,32 +416,33 @@ function setVisual(name) {
 	}
 }
 
-audio.addEventListener("ended", e => {
-	console.log("[e] ended");
-});
+function handleEvent(e) {
+	console.log(`[e] ${e.type}`);
+	switch (e.type) {
+		case "loadedmetadata":
+			enable("player:toggle");
+		break;
 
-audio.addEventListener("error", e => {
-	console.log("[e] error", e);
-});
+		case "playing":
+			disable("player:play");
+			enable("player:pause");
+			visual && visual.start();
+		break;
 
-audio.addEventListener("loadedmetadata", e => {
-	console.log("[e] loaded metadata");
-	enable("player:toggle");
-});
+		case "pause":
+			disable("player:pause");
+			enable("player:play");
+			visual && visual.stop();
+		break;
+	}
+}
 
-audio.addEventListener("playing", e => {
-	console.log("[e] playing");
-	disable("player:play");
-	enable("player:pause");
-	visual && visual.start();
-});
-
-audio.addEventListener("pause", e => {
-	console.log("[e] pause");
-	disable("player:pause");
-	enable("player:play");
-	visual && visual.stop();
-});
+let handler$1 = {handleEvent};
+audio.addEventListener("ended", handler$1);
+audio.addEventListener("error", handler$1);
+audio.addEventListener("loadedmetadata", handler$1);
+audio.addEventListener("playing", handler$1);
+audio.addEventListener("pause", handler$1);
 
 const document$2 = window.document;
 const node = document$2.querySelector("#playlist");

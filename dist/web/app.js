@@ -401,32 +401,33 @@ function setVisual(name) {
 	}
 }
 
-audio.addEventListener("ended", e => {
-	console.log("[e] ended");
-});
+function handleEvent(e) {
+	console.log(`[e] ${e.type}`);
+	switch (e.type) {
+		case "loadedmetadata":
+			enable("player:toggle");
+		break;
 
-audio.addEventListener("error", e => {
-	console.log("[e] error", e);
-});
+		case "playing":
+			disable("player:play");
+			enable("player:pause");
+			visual && visual.start();
+		break;
 
-audio.addEventListener("loadedmetadata", e => {
-	console.log("[e] loaded metadata");
-	enable("player:toggle");
-});
+		case "pause":
+			disable("player:pause");
+			enable("player:play");
+			visual && visual.stop();
+		break;
+	}
+}
 
-audio.addEventListener("playing", e => {
-	console.log("[e] playing");
-	disable("player:play");
-	enable("player:pause");
-	visual && visual.start();
-});
-
-audio.addEventListener("pause", e => {
-	console.log("[e] pause");
-	disable("player:pause");
-	enable("player:play");
-	visual && visual.stop();
-});
+let handler$1 = {handleEvent};
+audio.addEventListener("ended", handler$1);
+audio.addEventListener("error", handler$1);
+audio.addEventListener("loadedmetadata", handler$1);
+audio.addEventListener("playing", handler$1);
+audio.addEventListener("pause", handler$1);
 
 const document$2 = window.document;
 const node = document$2.querySelector("#playlist");

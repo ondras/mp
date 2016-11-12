@@ -7,6 +7,10 @@
 	
 	section {
 		flex-basis: @base;
+
+		@media (max-width: 380px) {
+			&:not(#main) { display:none; }
+		}
 	}
 	
 	button {

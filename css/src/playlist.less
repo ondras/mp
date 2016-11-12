@@ -17,14 +17,13 @@
 	}
 
 	li {
+		position: relative; /* anchor for button */
 		counter-increment: playlist;
 		display: block;
 		cursor: pointer;
 		white-space: nowrap;
-		padding: 2px 4px;
-		color: inherit;
+		padding: 2px 16px 2px 4px;
 		overflow: hidden;
-		text-decoration: none;
 		text-overflow: ellipsis;
 
 		&::before {
@@ -40,8 +39,10 @@
 		}
 		
 		button {
-			float: right;
-			visibility: hidden;
+			position: absolute;
+			right: 4px;
+			top: 3px;
+			display: none;
 			font-weight: normal;
 
 			&::before {
@@ -51,7 +52,7 @@
 		}
 		
 		&:hover:not(.current) button {
-			visibility: visible;
+			display: initial;
 		}
 	}
 

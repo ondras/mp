@@ -9,10 +9,12 @@
     "icon": "icon.png"
   },
   "devDependencies": {
+    "less": "^2.7.1",
     "rollup": "^0.36.3",
     "rollup-plugin-includepaths": "^0.1.6"
   },
   "scripts": {
-    "rollup": "cd js && rollup -c"
+    "rollup": "cd js && rollup -c",
+    "lessc": "cd css && lessc src/app.less"
   }
 }

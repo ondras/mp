@@ -23,7 +23,5 @@ export function globalShortcut(shortcut, cb) {
 export function resizeBy(dw, dh) {
 	let w = remote.getCurrentWindow();
 	let current = w.getSize();
-	current[0] += dw;
-	current[1] += dh;
-	w.setSize(current[0], current[1]);
+	w.setSize(current[0] + dw, current[1] + dh);
 }

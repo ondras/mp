@@ -52,29 +52,30 @@ export function setVisual(name) {
 	}
 }
 
-audio.addEventListener("ended", e => {
-	console.log("[e] ended");
-});
+function handleEvent(e) {
+	console.log(`[e] ${e.type}`);
+	switch (e.type) {
+		case "loadedmetadata":
+			command.enable("player:toggle");
+		break;
 
-audio.addEventListener("error", e => {
-	console.log("[e] error", e);
-});
+		case "playing":
+			command.disable("player:play");
+			command.enable("player:pause");
+			visual && visual.start();
+		break;
 
-audio.addEventListener("loadedmetadata", e => {
-	console.log("[e] loaded metadata");
-	command.enable("player:toggle");
-});
+		case "pause":
+			command.disable("player:pause");
+			command.enable("player:play");
+			visual && visual.stop();
+		break;
+	}
+}
 
-audio.addEventListener("playing", e => {
-	console.log("[e] playing");
-	command.disable("player:play");
-	command.enable("player:pause");
-	visual && visual.start();
-});
-
-audio.addEventListener("pause", e => {
-	console.log("[e] pause");
-	command.disable("player:pause");
-	command.enable("player:play");
-	visual && visual.stop();
-});
+let handler = {handleEvent};
+audio.addEventListener("ended", handler);
+audio.addEventListener("error", handler);
+audio.addEventListener("loadedmetadata", handler);
+audio.addEventListener("playing", handler);
+audio.addEventListener("pause", handler);

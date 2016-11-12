@@ -39,4 +39,9 @@ web:
 watch: all
 	while inotifywait -e MODIFY -r html bin css/less js/src ; do make $^ ; done
 
-.PHONY: all electron nw web watch
+clean:
+	rm -rf dist
+	$(MAKE) -C css clean
+	$(MAKE) -C js clean
+
+.PHONY: all electron nw web watch clean

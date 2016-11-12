@@ -93,6 +93,11 @@ button:not(:disabled):hover {
 #controls section {
   flex-basis: 80px;
 }
+@media (max-width: 380px) {
+  #controls section:not(#main) {
+    display: none;
+  }
+}
 #controls button {
   font-family: FontAwesome, arial, sans-serif;
 }
@@ -158,14 +163,14 @@ button:not(:disabled):hover {
   counter-reset: playlist;
 }
 #playlist li {
+  position: relative;
+  /* anchor for button */
   counter-increment: playlist;
   display: block;
   cursor: pointer;
   white-space: nowrap;
-  padding: 2px 4px;
-  color: inherit;
+  padding: 2px 16px 2px 4px;
   overflow: hidden;
-  text-decoration: none;
   text-overflow: ellipsis;
 }
 #playlist li::before {
@@ -178,8 +183,10 @@ button:not(:disabled):hover {
   font-weight: bold;
 }
 #playlist li button {
-  float: right;
-  visibility: hidden;
+  position: absolute;
+  right: 4px;
+  top: 3px;
+  display: none;
   font-weight: normal;
 }
 #playlist li button::before {
@@ -187,7 +194,7 @@ button:not(:disabled):hover {
   content: "\f00d";
 }
 #playlist li:hover:not(.current) button {
-  visibility: visible;
+  display: initial;
 }
 #playlist .analyser {
   position: absolute;
