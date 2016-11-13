@@ -20,29 +20,29 @@ export default class Waveform {
 	getNode() { return this._node; }
 
 	_decoded(audioBuffer) {
-		var channels = [];
+		let channels = [];
+		let width = this._options.width / this._options.columns;
 
-		for (var i=0;i<audioBuffer.numberOfChannels;i++) {
+		for (let i=0;i<audioBuffer.numberOfChannels;i++) {
 			channels.push(audioBuffer.getChannelData(i));
 		}
 
-		var ctx = this._node.getContext("2d");
+		let ctx = this._node.getContext("2d");
 		ctx.beginPath();
 		ctx.moveTo(0, this._node.height);
 
-		var width = this._options.width / this._options.columns;
-		var samplesPerColumn = Math.floor(channels[0].length / this._options.columns);
-		for (var i=0;i<this._options.columns;i++) {
-			var val = this._computeColumn(channels, i*samplesPerColumn, (i+1)*samplesPerColumn);
+		let samplesPerColumn = Math.floor(channels[0].length / this._options.columns);
+		for (let i=0;i<this._options.columns;i++) {
+			let val = this._computeColumn(channels, i*samplesPerColumn, (i+1)*samplesPerColumn);
 
-			var height = val * this._node.height;
+			let height = val * this._node.height;
 			ctx.lineTo(i*width, this._node.height-height);
 		}
 
 		ctx.lineTo(this._node.width, this._node.height);
 		ctx.closePath();
 
-		var gradient = ctx.createLinearGradient(0, 0, 0, this._node.height);
+		let gradient = ctx.createLinearGradient(0, 0, 0, this._node.height);
 		gradient.addColorStop(0, "#8cf");
 		gradient.addColorStop(1, "#38d");
 
@@ -55,15 +55,15 @@ export default class Waveform {
 	}
 
 	_computeColumn(channels, fromSample, toSample) {
-		var sum = 0;
+		let sum = 0;
 
-		for (var i=fromSample; i<toSample; i++) {
-			for (var j=0; j<channels.length; j++) {
+		for (let i=fromSample; i<toSample; i++) {
+			for (let j=0; j<channels.length; j++) {
 				sum += Math.abs(channels[j][i]);
 			}
 		}
 
-		var count = (toSample - fromSample) * channels.length;
+		let count = (toSample - fromSample) * channels.length;
 		return 2*sum/count;
 	}
 }

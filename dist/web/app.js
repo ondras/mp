@@ -134,12 +134,15 @@ function publish(message, publisher, data) {
 	});
 }
 
-function subscribe(message, subscriber) {
-	if (!(message in storage)) { storage[message] = []; }
-	storage[message].push(subscriber);
-}
+const document$1 = window.document;
+const registry = Object.create(null);
 
-let registry = {};
+function syncDisabledAttribute(command) {
+	let enabled = registry[command].enabled;
+	let nodes = Array.from(document$1.querySelectorAll(`[data-command='${command}']`));
+
+	nodes.forEach(n => n.disabled = !enabled);
+}
 
 function register$$1(command, keys, func) {
 	function wrap() {
@@ -164,14 +167,21 @@ function register$$1(command, keys, func) {
 function enable(command) {
 	Object.keys(registry)
 		.filter(c => c.match(command))
-		.forEach(c => registry[c].enabled = true);
+		.forEach(c => {
+			registry[c].enabled = true;
+			syncDisabledAttribute(c);
+		});
+
 	publish("command-enable", command);
 }
 
 function disable(command) {
 	Object.keys(registry)
 		.filter(c => c.match(command))
-		.forEach(c => registry[c].enabled = false);
+		.forEach(c => {
+			registry[c].enabled = false;
+			syncDisabledAttribute(c);
+		});
 	publish("command-disable", command);
 }
 
@@ -182,6 +192,16 @@ function isEnabled(command) {
 function execute(command) {
 	return registry[command].func();
 }
+
+document$1.body.addEventListener("click", e => {
+	let node = event.target;
+	while (node) {
+		let c = node.getAttribute("data-command");
+		if (c) { return execute(c); }
+		if (node == event.currentTarget) { break; }
+		node = node.parentNode;
+	}
+});
 
 
 var command = Object.freeze({
@@ -204,13 +224,13 @@ function xhr(url) {
 	});	
 }
 
-const document$1 = window.document;
+const document$2 = window.document;
 
 class Vis {
 	constructor(audioContext) {
 		this._enabled = false;
 		this._analyser = audioContext.createAnalyser();
-		this._node = document$1.createElement("canvas");
+		this._node = document$2.createElement("canvas");
 	}
 	
 	getAudioNode() { return this._analyser; }
@@ -367,6 +387,8 @@ register$$1("player:toggle", "space", () => {
 	audio.paused ? audio.play() : audio.pause();
 });
 
+/* FIXME: default enabled/disabled states */
+
 function play(url) {
 	disable("player:");
 	audio.src = url.href;
@@ -403,6 +425,7 @@ function setVisual(name) {
 
 function handleEvent(e) {
 	console.log(`[e] ${e.type}`);
+
 	switch (e.type) {
 		case "loadedmetadata":
 			enable("player:toggle");
@@ -429,8 +452,8 @@ audio.addEventListener("loadedmetadata", handler$1);
 audio.addEventListener("playing", handler$1);
 audio.addEventListener("pause", handler$1);
 
-const document$2 = window.document;
-const node = document$2.querySelector("#playlist");
+const document$3 = window.document;
+const node = document$3.querySelector("#playlist");
 const list = node.querySelector("ol");
 
 let current = null;
@@ -470,6 +493,23 @@ register$$1("playlist:prev", null, () => playByIndex(items.indexOf(current)-1));
 register$$1("playlist:next", null, () => playByIndex(items.indexOf(current)+1));
 disable("playlist:");
 
+register$$1("playlist:randomize", null, () => {
+	let newItems = [];
+	let index = items.indexOf(current);
+
+	while (items.length) {
+		newItems.push(items.splice(index, 1)[0]);
+		index = Math.floor(items.length*Math.random());
+	}
+
+	items = newItems;
+
+	list.innerHTML = "";
+	items.forEach(item => list.appendChild(item.node));
+
+	updateCommands();
+});
+
 function setRepeat(r) {
 	repeat = r;
 }
@@ -494,14 +534,14 @@ function clear() {
 function add(url) {
 	var item = {
 		url: url,
-		node: document$2.createElement("li"),
-		remove: document$2.createElement("button")
+		node: document$3.createElement("li"),
+		remove: document$3.createElement("button")
 	};
 	items.push(item);
 
 	list.appendChild(item.node);
 	var text = decodeURI(url.href).match(/[^\/]*$/);
-	item.node.appendChild(document$2.createTextNode(text));
+	item.node.appendChild(document$3.createTextNode(text));
 	item.remove.title = "Remove from playlist";
 	item.node.appendChild(item.remove);
 	item.node.draggable = true;
@@ -569,27 +609,8 @@ audio.addEventListener("ended", e => {
 	}
 });
 
-node.querySelector("button.random").addEventListener("click", e => {
-	e.preventDefault();
-
-	let newItems = [];
-	let index = items.indexOf(current);
-
-	while (items.length) {
-		newItems.push(items.splice(index, 1)[0]);
-		index = Math.floor(items.length*Math.random());
-	}
-
-	items = newItems;
-
-	list.innerHTML = "";
-	items.forEach(item => list.appendChild(item.node));
-
-	updateCommands();
-});
-
-const document$4 = window.document;
-const node$1 = document$4.querySelector("#albumart");
+const document$5 = window.document;
+const node$1 = document$5.querySelector("#albumart");
 const files = ["Cover.jpg", "cover.jpg", "Folder.jpg", "folder.jpg"];
 
 function doShow(src) {
@@ -630,7 +651,7 @@ function show(metadataCover, audioSrc) {
 }
 
 const ctx$1 = new window.AudioContext();
-const document$5 = window.document;
+const document$6 = window.document;
 
 class Waveform {
 	constructor(arrayBuffer, options) {
@@ -641,7 +662,7 @@ class Waveform {
 			color: "gray"
 		}, options);
 
-		this._node = document$5.createElement("canvas");
+		this._node = document$6.createElement("canvas");
 		this._node.width = this._options.width;
 		this._node.height = this._options.height;
 
@@ -651,29 +672,29 @@ class Waveform {
 	getNode() { return this._node; }
 
 	_decoded(audioBuffer) {
-		var channels = [];
+		let channels = [];
+		let width = this._options.width / this._options.columns;
 
-		for (var i=0;i<audioBuffer.numberOfChannels;i++) {
+		for (let i=0;i<audioBuffer.numberOfChannels;i++) {
 			channels.push(audioBuffer.getChannelData(i));
 		}
 
-		var ctx = this._node.getContext("2d");
+		let ctx = this._node.getContext("2d");
 		ctx.beginPath();
 		ctx.moveTo(0, this._node.height);
 
-		var width = this._options.width / this._options.columns;
-		var samplesPerColumn = Math.floor(channels[0].length / this._options.columns);
-		for (var i=0;i<this._options.columns;i++) {
-			var val = this._computeColumn(channels, i*samplesPerColumn, (i+1)*samplesPerColumn);
+		let samplesPerColumn = Math.floor(channels[0].length / this._options.columns);
+		for (let i=0;i<this._options.columns;i++) {
+			let val = this._computeColumn(channels, i*samplesPerColumn, (i+1)*samplesPerColumn);
 
-			var height = val * this._node.height;
+			let height = val * this._node.height;
 			ctx.lineTo(i*width, this._node.height-height);
 		}
 
 		ctx.lineTo(this._node.width, this._node.height);
 		ctx.closePath();
 
-		var gradient = ctx.createLinearGradient(0, 0, 0, this._node.height);
+		let gradient = ctx.createLinearGradient(0, 0, 0, this._node.height);
 		gradient.addColorStop(0, "#8cf");
 		gradient.addColorStop(1, "#38d");
 
@@ -686,15 +707,15 @@ class Waveform {
 	}
 
 	_computeColumn(channels, fromSample, toSample) {
-		var sum = 0;
+		let sum = 0;
 
-		for (var i=fromSample; i<toSample; i++) {
-			for (var j=0; j<channels.length; j++) {
+		for (let i=fromSample; i<toSample; i++) {
+			for (let j=0; j<channels.length; j++) {
 				sum += Math.abs(channels[j][i]);
 			}
 		}
 
-		var count = (toSample - fromSample) * channels.length;
+		let count = (toSample - fromSample) * channels.length;
 		return 2*sum/count;
 	}
 }
@@ -1062,10 +1083,10 @@ function metadata(arrayBuffer) {
 	return null;
 }
 
-const document$3 = window.document;
+const document$4 = window.document;
 
 let dom = {
-	node: document$3.querySelector("#info")
+	node: document$4.querySelector("#info")
 };
 ["waveform", "current", "time-played", "time-remaining", "metadata"].forEach(name => {
 	dom[name] = dom.node.querySelector(`.${name}`);
@@ -1104,11 +1125,11 @@ function showText(title, subtitle) {
 	let h2 = dom.metadata.querySelector("h2");
 
 	h1.innerHTML = "";
-	h1.appendChild(document$3.createTextNode(title));
+	h1.appendChild(document$4.createTextNode(title));
 	h1.title = title;
 
 	h2.innerHTML = "";
-	h2.appendChild(document$3.createTextNode(subtitle));
+	h2.appendChild(document$4.createTextNode(subtitle));
 	h2.title = subtitle;
 }
 
@@ -1145,100 +1166,91 @@ audio.addEventListener("loadedmetadata", function(e) {
 		let m = metadata(data);
 		showMetadata(m);
 
-		var options = {
+		let options = {
 			width: dom.waveform.offsetWidth,
 			height: dom.waveform.offsetHeight
 		};
-		var w = new Waveform(data, options);
+		let w = new Waveform(data, options);
 		dom.waveform.appendChild(w.getNode());
 	});
 });
 
 dom.node.addEventListener("click", e => {
-	var rect = dom.node.getBoundingClientRect();
-	var left = e.clientX - rect.left;
-	var frac = left / rect.width;
+	let rect = dom.node.getBoundingClientRect();
+	let left = e.clientX - rect.left;
+	let frac = left / rect.width;
 	audio.currentTime = frac * audio.duration;
 });
 
-const document$6 = window.document;
+const document$7 = window.document;
+const dom$1 = document$7.querySelector("#controls");
 
-const repeatModes = ["N", "1", ""];
-const repeatTitles = ["Repeat playlist", "Repeat song", "No repeat"];
+const repeatModes = [
+	{value:"N", title:"Repeat playlist"},
+	{value:"1", title:"Repeat song"},
+	{value:"", title:"No repeat"}
+];
 
-const visualModes = ["spectrum", "psyco", ""];
-const visualLabels = ["1", "2", ""];
-const visualTitles = ["Spectrum analyser", "Visual Player 2.0 for DOS", "No visuals"];
+const visualModes = [
+	{value:"spectrum", label:"1", title:"Spectrum analyser"},
+	{value:"psyco", label:"2", title:"Visual Player 2.0 for DOS"},
+	{value:"", label:"", title:"No visuals"}
+];
 
-let settings = {
+const settings = {
 	repeat: 0,
 	playlist: true,
 	visual: 0
 };
 
-let dom$1 = {
-	node: document$6.querySelector("#controls")
-};
-["prev", "next", "play", "pause", "repeat", "playlist", "visual"].forEach(name => {
-	dom$1[name] = dom$1.node.querySelector(`.${name}`);
-});
-
 function setPlaylist(state) {
+	let node = dom$1.querySelector("[data-command='settings:toggle-playlist']");
+
 	settings.playlist = state;
-	dom$1.playlist.classList.toggle("on", state);
-	dom$1.playlist.title = state ? "Playlist visible" : "Playlist hidden";
+	node.classList.toggle("on", state);
+	node.title = state ? "Playlist visible" : "Playlist hidden";
 	setVisibility(state);
 }
 
 function setRepeat$1(index) {
-	settings.repeat = index;
-	let str = repeatModes[index];
+	let node = dom$1.querySelector("[data-command='settings:toggle-repeat']");
 
-	dom$1.repeat.classList.toggle("on", str != "");
-	dom$1.repeat.querySelector("sub").innerHTML = str;
+	settings.repeat = index;
+	let str = repeatModes[index].value;
+
+	node.classList.toggle("on", str != "");
+	node.querySelector("sub").innerHTML = str;
+	node.title = repeatModes[index].title;
+
 	setRepeat(str);
 	
-	dom$1.repeat.title = repeatTitles[index];
 }
 
 function setVisual$1(index) {
+	let node = dom$1.querySelector("[data-command='settings:toggle-visual']");
+
 	settings.visual = index;
-	let str = visualModes[index];
+	let str = visualModes[index].value;
 
-	dom$1.visual.classList.toggle("on", str != "");
-	setVisual(str);
-	dom$1.visual.querySelector("sub").innerHTML = visualLabels[index];
+	node.classList.toggle("on", str != "");
+	node.querySelector("sub").innerHTML = visualModes[index].label;
+	node.title = visualModes[index].title;
 	
-	dom$1.visual.title = visualTitles[index];
+	setVisual(str);
 }
 
-function sync() {
-	dom$1.prev.disabled = !isEnabled("playlist:prev");
-	dom$1.next.disabled = !isEnabled("playlist:next");
-	dom$1.node.className = isEnabled("player:play") ? "paused" : "playing";
-}
-
-dom$1.prev.addEventListener("click", e => execute("playlist:prev"));
-dom$1.next.addEventListener("click", e => execute("playlist:next"));
-dom$1.pause.addEventListener("click", e => execute("player:pause"));
-dom$1.play.addEventListener("click", e => execute("player:play"));
-
-dom$1.repeat.addEventListener("click", e => {
+register$$1("settings:toggle-repeat", null, () => {
 	setRepeat$1((settings.repeat + 1) % repeatModes.length);
 });
 
-dom$1.visual.addEventListener("click", e => {
+register$$1("settings:toggle-visual", null, () => {
 	setVisual$1((settings.visual + 1) % visualModes.length);
 });
 
-dom$1.playlist.addEventListener("click", e => {
+register$$1("settings:toggle-playlist", null, () => {
 	setPlaylist(!settings.playlist);
 });
 
-subscribe("command-enable", sync);
-subscribe("command-disable", sync);
-
-sync();
 setRepeat$1(0);
 setPlaylist(true);
 setVisual$1(0);

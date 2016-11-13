@@ -9,15 +9,15 @@
 		<section id="controls">
 			<section id="albumart"></section>
 			<section id="main">
-				<button class="prev" title="Previous song">&#xf04a;</button>
-				<button class="play" title="Play">&#xf04b;</button>
-				<button class="pause" title="Pause">&#xf04c;</button>
-				<button class="next" title="Next song">&#xf04e;</button>
+				<button data-command="playlist:prev" title="Previous song">&#xf04a;</button>
+				<button data-command="player:play" title="Play">&#xf04b;</button>
+				<button data-command="player:pause" title="Pause">&#xf04c;</button>
+				<button data-command="playlist:next" title="Next song">&#xf04e;</button>
 			</section>
 			<section id="misc">
-				<button class="playlist">&#xf0ca;</button>
-				<button class="repeat">&#xf01e;<sub></sub></button>
-				<button class="visual">&#xf080;<sub></sub></button>
+				<button data-command="settings:toggle-playlist">&#xf0ca;</button>
+				<button data-command="settings:toggle-repeat">&#xf01e;<sub></sub></button>
+				<button data-command="settings:toggle-visual">&#xf080;<sub></sub></button>
 			</section>
 		</section>
 
@@ -35,7 +35,7 @@
 		<section id="playlist">
 			<div class="analyser"></div>
 			<ol></ol>
-			<button class="random" title="Randomize playlist">&#xf074;</button>
+			<button data-command="playlist:randomize" title="Randomize playlist">&#xf074;</button>
 		</section>
 
 		<script src="app.js"></script>

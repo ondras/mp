@@ -86,18 +86,18 @@ player.audio.addEventListener("loadedmetadata", function(e) {
 		let m = metadata(data);
 		showMetadata(m);
 
-		var options = {
+		let options = {
 			width: dom.waveform.offsetWidth,
 			height: dom.waveform.offsetHeight
 		}
-		var w = new Waveform(data, options);
+		let w = new Waveform(data, options);
 		dom.waveform.appendChild(w.getNode());
 	});
 });
 
 dom.node.addEventListener("click", e => {
-	var rect = dom.node.getBoundingClientRect();
-	var left = e.clientX - rect.left;
-	var frac = left / rect.width;
+	let rect = dom.node.getBoundingClientRect();
+	let left = e.clientX - rect.left;
+	let frac = left / rect.width;
 	player.audio.currentTime = frac * player.audio.duration;
 });

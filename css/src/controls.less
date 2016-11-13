@@ -32,13 +32,12 @@
 			width: 1.5em;
 			vertical-align: middle;
 		}
-		.play, .pause {
-			font-size: 50px;
-		}
-	}
 
-	&.paused .pause, &.playing .play {
-		display: none;
+		[data-command='player:play'], [data-command='player:pause'] {
+			font-size: 50px;
+
+			&:disabled { display: none; }
+		}
 	}
 
 	#misc button {
@@ -68,5 +67,4 @@
 			}
 		}
 	}
-
 }

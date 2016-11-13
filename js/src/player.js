@@ -18,6 +18,8 @@ command.register("player:toggle", "space", () => {
 	audio.paused ? audio.play() : audio.pause();
 });
 
+/* FIXME: default enabled/disabled states */
+
 export function play(url) {
 	command.disable("player:");
 	audio.src = url.href;
@@ -54,6 +56,7 @@ export function setVisual(name) {
 
 function handleEvent(e) {
 	console.log(`[e] ${e.type}`);
+
 	switch (e.type) {
 		case "loadedmetadata":
 			command.enable("player:toggle");

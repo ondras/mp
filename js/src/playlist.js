@@ -43,6 +43,23 @@ command.register("playlist:prev", null, () => playByIndex(items.indexOf(current)
 command.register("playlist:next", null, () => playByIndex(items.indexOf(current)+1));
 command.disable("playlist:");
 
+command.register("playlist:randomize", null, () => {
+	let newItems = [];
+	let index = items.indexOf(current);
+
+	while (items.length) {
+		newItems.push(items.splice(index, 1)[0]);
+		index = Math.floor(items.length*Math.random());
+	}
+
+	items = newItems;
+
+	list.innerHTML = "";
+	items.forEach(item => list.appendChild(item.node));
+
+	updateCommands();
+});
+
 export function setRepeat(r) {
 	repeat = r;
 }
@@ -65,7 +82,7 @@ export function clear() {
 }
 
 export function add(url) {
-	var item = {
+	let item = {
 		url: url,
 		node: document.createElement("li"),
 		remove: document.createElement("button")
@@ -73,7 +90,7 @@ export function add(url) {
 	items.push(item);
 
 	list.appendChild(item.node);
-	var text = decodeURI(url.href).match(/[^\/]*$/);
+	let text = decodeURI(url.href).match(/[^\/]*$/);
 	item.node.appendChild(document.createTextNode(text));
 	item.remove.title = "Remove from playlist";
 	item.node.appendChild(item.remove);
@@ -140,23 +157,4 @@ player.audio.addEventListener("ended", e => {
 
 		case "": break;
 	}
-});
-
-node.querySelector("button.random").addEventListener("click", e => {
-	e.preventDefault();
-
-	let newItems = [];
-	let index = items.indexOf(current);
-
-	while (items.length) {
-		newItems.push(items.splice(index, 1)[0]);
-		index = Math.floor(items.length*Math.random());
-	}
-
-	items = newItems;
-
-	list.innerHTML = "";
-	items.forEach(item => list.appendChild(item.node));
-
-	updateCommands();
 });

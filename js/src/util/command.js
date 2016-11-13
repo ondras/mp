@@ -1,7 +1,15 @@
 import * as keyboard from "./keyboard.js";
 import * as pubsub from "./pubsub.js";
 
-let registry = {};
+const document = window.document;
+const registry = Object.create(null);
+
+function syncDisabledAttribute(command) {
+	let enabled = registry[command].enabled;
+	let nodes = Array.from(document.querySelectorAll(`[data-command='${command}']`));
+
+	nodes.forEach(n => n.disabled = !enabled);
+}
 
 export function register(command, keys, func) {
 	function wrap() {
@@ -26,14 +34,21 @@ export function register(command, keys, func) {
 export function enable(command) {
 	Object.keys(registry)
 		.filter(c => c.match(command))
-		.forEach(c => registry[c].enabled = true);
+		.forEach(c => {
+			registry[c].enabled = true;
+			syncDisabledAttribute(c);
+		});
+
 	pubsub.publish("command-enable", command);
 }
 
 export function disable(command) {
 	Object.keys(registry)
 		.filter(c => c.match(command))
-		.forEach(c => registry[c].enabled = false);
+		.forEach(c => {
+			registry[c].enabled = false;
+			syncDisabledAttribute(c);
+		});
 	pubsub.publish("command-disable", command);
 }
 
@@ -44,3 +59,13 @@ export function isEnabled(command) {
 export function execute(command) {
 	return registry[command].func();
 }
+
+document.body.addEventListener("click", e => {
+	let node = event.target;
+	while (node) {
+		let c = node.getAttribute("data-command");
+		if (c) { return execute(c); }
+		if (node == event.currentTarget) { break; }
+		node = node.parentNode;
+	}
+});

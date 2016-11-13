@@ -37,7 +37,7 @@ function readPage(data, offset, getData) {
 }
 
 function readComments(comments) {
-	var result = {};
+	let result = {};
 
 	let vendorLength = comments.getUint32(0, true);
 	let commentListLength = comments.getUint32(4 + vendorLength, true);
