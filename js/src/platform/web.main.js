@@ -26,25 +26,22 @@ function openPlayer(argv) {
 function sendMessage(argv) {
 	let data = {
 		command: "control",
-		argv: argv
+		argv
 	};
 	win.postMessage(data, "*");
 }	
 
 function getArgv() {
-	let argv = [];
-
 	if (document.querySelector("#type-url").checked) {
 		let value = document.querySelector("#input-url").value;
-		if (value) { argv.push(value); }
+		if (value) { return [value]; }
 	}
 	
 	if (document.querySelector("#type-file").checked) {
 		let input = document.querySelector("#input-file");
-		argv = Array.from(input.files).map(f => URL.createObjectURL(f));
+		return Array.from(input.files).map(f => URL.createObjectURL(f));
 	}
-
-	return argv;
+	return [];
 }
 
 document.querySelector("button").addEventListener("click", e => {

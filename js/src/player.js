@@ -17,8 +17,7 @@ command.register("player:pause", null, () => audio.pause());
 command.register("player:toggle", "space", () => {
 	audio.paused ? audio.play() : audio.pause();
 });
-
-/* FIXME: default enabled/disabled states */
+command.disable("player:");
 
 export function play(url) {
 	command.disable("player:");

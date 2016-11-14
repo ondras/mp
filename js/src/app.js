@@ -37,7 +37,11 @@ function playFile(url) {
 	if (isPlaylist(url)) {
 		return getPlaylist(url).then(urls => Promise.all(urls.map(playFile)));
 	} else {
-		return playSong(url);
+		playlist.add(url);
+		if (!command.isEnabled("playlist:next")) { // play the first one enqueued
+			player.play(url);
+		}
+		return Promise.resolve();
 	}
 }
 
@@ -45,21 +49,9 @@ function enqueueFile(url) {
 	if (isPlaylist(url)) {
 		return getPlaylist(url).then(urls => Promise.all(urls.map(enqueueFile)));
 	} else {
-		return enqueueSong(url);
+		playlist.add(url);
+		return Promise.resolve();
 	}
-}
-
-function playSong(url) {
-	let promise = enqueueSong(url);
-	if (!command.isEnabled("playlist:next")) { // play the first one enqueued
-		player.play(url);
-	}
-	return promise;
-}
-
-function enqueueSong(url) {
-	playlist.add(url);
-	return Promise.resolve();
 }
 
 function toURL(stuff, base) {
@@ -72,7 +64,6 @@ function processCommand(c) {
 		case "pause": command.execute("player:pause"); break;
 		case "prev": command.execute("playlist:prev"); break; 
 		case "next": command.execute("playlist:next"); break; 
-
 		default: alert(`Unknown command '${c}'.`); break;
 	}
 }

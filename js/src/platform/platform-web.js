@@ -1,12 +1,11 @@
-let search = location.search.substring(1)
+const search = location.search.substring(1);
 
 export const argv = (search ? search.split("&") : []).map(decodeURIComponent);
+export const baseURI = document.baseURI;
 
 export function showDevTools() {}
-
 export function setFullscreen(fullscreen) { return fullscreen; }
-
-export const baseURI = document.baseURI;
+export function globalShortcut(shortcut, cb) {}
 
 export function onOpen(callback) {
 	window.addEventListener("message", (e) => {
@@ -15,8 +14,6 @@ export function onOpen(callback) {
 		}
 	});
 }
-
-export function globalShortcut(shortcut, cb) {}
 
 export function resizeBy(dw, dh) {
 	window.resizeBy(dw, dh);

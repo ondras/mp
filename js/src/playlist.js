@@ -19,9 +19,9 @@ function highlight() {
 }
 
 function updateCommands() {
-	let index = items.indexOf(current);
-	command[index > 0 ? "enable" : "disable"]("playlist:prev");
-	command[index + 1 < items.length ? "enable" : "disable"]("playlist:next");
+	command[items.length > 1 ? "enable" : "disable"]("playlist:prev");
+	command[items.length > 1 ? "enable" : "disable"]("playlist:next");
+	command[items.length > 1 ? "enable" : "disable"]("playlist:randomize");
 }
 
 function nodeToIndex(node) {
@@ -33,6 +33,7 @@ function nodeToIndex(node) {
 }
 
 function playByIndex(index) {
+	index = (index + items.length) % items.length; // forcing positive modulus
 	current = items[index];
 	player.play(current.url);
 	highlight();
@@ -41,7 +42,6 @@ function playByIndex(index) {
 
 command.register("playlist:prev", null, () => playByIndex(items.indexOf(current)-1));
 command.register("playlist:next", null, () => playByIndex(items.indexOf(current)+1));
-command.disable("playlist:");
 
 command.register("playlist:randomize", null, () => {
 	let newItems = [];
@@ -79,6 +79,7 @@ export function clear() {
 	list.innerHTML = "";
 	items = [];
 	current = null;
+	updateCommands();
 }
 
 export function add(url) {
@@ -143,11 +144,11 @@ list.addEventListener("dragenter", e => {
 player.audio.addEventListener("ended", e => {
 	let index = items.indexOf(current);
 	switch (repeat) {
-		case "1":
+		case "1": // repeat current
 			playByIndex(index);
 		break;
 
-		case "N":
+		case "N": // repeat playlist, i.e. advance to next/first
 			if (index+1 < items.length) {
 				playByIndex(index+1);
 			} else {
@@ -155,6 +156,8 @@ player.audio.addEventListener("ended", e => {
 			}
 		break;
 
-		case "": break;
+		case "": break; // no repeat at all
 	}
 });
+
+clear();

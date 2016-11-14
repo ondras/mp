@@ -249,7 +249,6 @@ class Vis {
 	}
 	
 	getAudioNode() { return this._analyser; }
-
 	getNode() { return this._node; }
 	
 	start() {
@@ -271,8 +270,7 @@ class Vis {
 		this._draw();
 	}
 	
-	_draw() {
-	}
+	_draw() {}
 }
 
 class Spectrum extends Vis {
@@ -290,7 +288,6 @@ class Spectrum extends Vis {
 
 		this._ctx = this._node.getContext("2d");
 	}
-
 
 	_resize() {
 		this._node.width = this._node.clientWidth;
@@ -401,8 +398,7 @@ register$$1("player:pause", null, () => audio.pause());
 register$$1("player:toggle", "space", () => {
 	audio.paused ? audio.play() : audio.pause();
 });
-
-/* FIXME: default enabled/disabled states */
+disable("player:");
 
 function play(url) {
 	disable("player:");
@@ -484,9 +480,9 @@ function highlight() {
 }
 
 function updateCommands() {
-	let index = items.indexOf(current);
-	command[index > 0 ? "enable" : "disable"]("playlist:prev");
-	command[index + 1 < items.length ? "enable" : "disable"]("playlist:next");
+	command[items.length > 1 ? "enable" : "disable"]("playlist:prev");
+	command[items.length > 1 ? "enable" : "disable"]("playlist:next");
+	command[items.length > 1 ? "enable" : "disable"]("playlist:randomize");
 }
 
 function nodeToIndex(node) {
@@ -498,6 +494,7 @@ function nodeToIndex(node) {
 }
 
 function playByIndex(index) {
+	index = (index + items.length) % items.length; // forcing positive modulus
 	current = items[index];
 	play(current.url);
 	highlight();
@@ -506,7 +503,6 @@ function playByIndex(index) {
 
 register$$1("playlist:prev", null, () => playByIndex(items.indexOf(current)-1));
 register$$1("playlist:next", null, () => playByIndex(items.indexOf(current)+1));
-disable("playlist:");
 
 register$$1("playlist:randomize", null, () => {
 	let newItems = [];
@@ -544,10 +540,11 @@ function clear() {
 	list.innerHTML = "";
 	items = [];
 	current = null;
+	updateCommands();
 }
 
 function add(url) {
-	var item = {
+	let item = {
 		url: url,
 		node: document$3.createElement("li"),
 		remove: document$3.createElement("button")
@@ -555,7 +552,7 @@ function add(url) {
 	items.push(item);
 
 	list.appendChild(item.node);
-	var text = decodeURI(url.href).match(/[^\/]*$/);
+	let text = decodeURI(url.href).match(/[^\/]*$/);
 	item.node.appendChild(document$3.createTextNode(text));
 	item.remove.title = "Remove from playlist";
 	item.node.appendChild(item.remove);
@@ -608,11 +605,11 @@ list.addEventListener("dragenter", e => {
 audio.addEventListener("ended", e => {
 	let index = items.indexOf(current);
 	switch (repeat) {
-		case "1":
+		case "1": // repeat current
 			playByIndex(index);
 		break;
 
-		case "N":
+		case "N": // repeat playlist, i.e. advance to next/first
 			if (index+1 < items.length) {
 				playByIndex(index+1);
 			} else {
@@ -620,9 +617,11 @@ audio.addEventListener("ended", e => {
 			}
 		break;
 
-		case "": break;
+		case "": break; // no repeat at all
 	}
 });
+
+clear();
 
 const document$5 = window.document;
 const node$1 = document$5.querySelector("#albumart");
@@ -944,7 +943,7 @@ function readPage(data, offset, getData) {
 }
 
 function readComments(comments) {
-	var result = {};
+	let result = {};
 
 	let vendorLength = comments.getUint32(0, true);
 	let commentListLength = comments.getUint32(4 + vendorLength, true);
@@ -1305,7 +1304,11 @@ function playFile(url) {
 	if (isPlaylist(url)) {
 		return getPlaylist(url).then(urls => Promise.all(urls.map(playFile)));
 	} else {
-		return playSong(url);
+		add(url);
+		if (!isEnabled("playlist:next")) { // play the first one enqueued
+			play(url);
+		}
+		return Promise.resolve();
 	}
 }
 
@@ -1313,21 +1316,9 @@ function enqueueFile(url) {
 	if (isPlaylist(url)) {
 		return getPlaylist(url).then(urls => Promise.all(urls.map(enqueueFile)));
 	} else {
-		return enqueueSong(url);
+		add(url);
+		return Promise.resolve();
 	}
-}
-
-function playSong(url) {
-	let promise = enqueueSong(url);
-	if (!isEnabled("playlist:next")) { // play the first one enqueued
-		play(url);
-	}
-	return promise;
-}
-
-function enqueueSong(url) {
-	add(url);
-	return Promise.resolve();
 }
 
 function toURL(stuff, base) {
@@ -1340,7 +1331,6 @@ function processCommand(c) {
 		case "pause": execute("player:pause"); break;
 		case "prev": execute("playlist:prev"); break; 
 		case "next": execute("playlist:next"); break; 
-
 		default: alert(`Unknown command '${c}'.`); break;
 	}
 }

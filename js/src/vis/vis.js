@@ -8,7 +8,6 @@ export default class Vis {
 	}
 	
 	getAudioNode() { return this._analyser; }
-
 	getNode() { return this._node; }
 	
 	start() {
@@ -30,6 +29,5 @@ export default class Vis {
 		this._draw();
 	}
 	
-	_draw() {
-	}
+	_draw() {}
 }

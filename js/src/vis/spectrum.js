@@ -16,7 +16,6 @@ export default class Spectrum extends Vis {
 		this._ctx = this._node.getContext("2d");
 	}
 
-
 	_resize() {
 		this._node.width = this._node.clientWidth;
 		this._node.height = this._node.clientHeight;
