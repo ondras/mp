@@ -1,6 +1,8 @@
 import * as player from "player.js";
 import * as platform from "platform.js";
 import * as command from "util/command.js";
+import * as pubsub from "util/pubsub.js";
+import * as settings from "settings.js";
 
 const document = window.document;
 const node = document.querySelector("#playlist");
@@ -8,7 +10,6 @@ const list = node.querySelector("ol");
 
 let current = null;
 let items = [];
-let repeat = "";
 let height = 0;
 let dragging = null;
 
@@ -60,11 +61,11 @@ command.register("playlist:randomize", null, () => {
 	updateCommands();
 });
 
-export function setRepeat(r) {
-	repeat = r;
-}
+function syncVisibility() {
+	let visible = settings.get("playlist");
+	let isVisible = (node.style.display != "none");
+	if (visible == isVisible) { return; }
 
-export function setVisibility(visible) {
 	if (visible) {
 		platform.resizeBy(0, height);
 		node.style.display = "";
@@ -143,6 +144,8 @@ list.addEventListener("dragenter", e => {
 
 player.audio.addEventListener("ended", e => {
 	let index = items.indexOf(current);
+	let repeat = settings.get("repeat");
+
 	switch (repeat) {
 		case "1": // repeat current
 			playByIndex(index);
@@ -160,4 +163,11 @@ player.audio.addEventListener("ended", e => {
 	}
 });
 
+function syncSettings(message, publisher, data) {
+	if (data != "playlist") { return; }
+	syncVisibility();
+}
+
+pubsub.subscribe("settings-change", syncSettings);
+syncVisibility();
 clear();

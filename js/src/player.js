@@ -1,6 +1,8 @@
 import Spectrum from "vis/spectrum.js";
 import Psyco from "vis/psyco.js";
 import * as command from "util/command.js";
+import * as settings from "settings.js";
+import * as pubsub from "util/pubsub.js";
 
 export const audio = new window.Audio();
 const ctx = new window.AudioContext();
@@ -11,6 +13,7 @@ const visuals = {
 	spectrum: new Spectrum(ctx),
 	psyco: new Psyco(ctx)
 }
+let currentVisual = null;
 
 command.register("player:play", null, () => audio.play());
 command.register("player:pause", null, () => audio.pause());
@@ -25,29 +28,29 @@ export function play(url) {
 	audio.play();
 }
 
-let visual = null;
+function syncVisual() {
+	let name = settings.get("visual");
 
-export function setVisual(name) {
 	let parent = document.querySelector(".analyser"); // FIXME
 	parent.innerHTML = "";
 
-	if (visual) {
-		visual.stop();
-		let oldAudioNode = visual.getAudioNode();
+	if (currentVisual) {
+		currentVisual.stop();
+		let oldAudioNode = currentVisual.getAudioNode();
 		source.disconnect(oldAudioNode);
 		oldAudioNode.disconnect(ctx.destination);
 	} else {
 		source.disconnect(ctx.destination);
 	}
 	
-	visual = visuals[name];
+	currentVisual = visuals[name] || null;
 	
-	if (visual) {
-		let audioNode = visual.getAudioNode();
+	if (currentVisual) {
+		let audioNode = currentVisual.getAudioNode();
 		audioNode.connect(ctx.destination);
 		source.connect(audioNode);
-		parent.appendChild(visual.getNode());
-		visual.start();
+		parent.appendChild(currentVisual.getNode());
+		currentVisual.start();
 	} else {
 		source.connect(ctx.destination);
 	}
@@ -64,13 +67,13 @@ function handleEvent(e) {
 		case "playing":
 			command.disable("player:play");
 			command.enable("player:pause");
-			visual && visual.start();
+			currentVisual && currentVisual.start();
 		break;
 
 		case "pause":
 			command.disable("player:pause");
 			command.enable("player:play");
-			visual && visual.stop();
+			currentVisual && currentVisual.stop();
 		break;
 	}
 }
@@ -81,3 +84,12 @@ audio.addEventListener("error", handler);
 audio.addEventListener("loadedmetadata", handler);
 audio.addEventListener("playing", handler);
 audio.addEventListener("pause", handler);
+
+function onSettingsChange(message, publisher, data) {
+	if (data != "visual") { return; }
+	syncVisual();
+}
+
+pubsub.subscribe("settings-change", onSettingsChange);
+
+syncVisual();

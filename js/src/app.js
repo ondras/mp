@@ -1,10 +1,14 @@
 import * as platform from "platform.js";
 import * as command from "util/command.js";
-import xhr from "util/xhr.js";
 import * as player from "player.js";
 import * as playlist from "playlist.js";
+
+import xhr from "util/xhr.js";
+
+/* just to initialize those */
 import * as info from "info.js";
 import * as controls from "controls.js";
+import * as settings from "settings.js";
 
 command.register("app:devtools", "f12", () => {
 	platform.showDevTools();

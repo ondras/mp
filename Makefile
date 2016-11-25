@@ -37,7 +37,7 @@ web:
 	ln -f -r -s sample $(WEB)
 
 watch: all
-	while inotifywait -e MODIFY -r html bin css/less js/src ; do make $^ ; done
+	while inotifywait -e MODIFY -r html bin css/src js/src ; do make $^ ; done
 
 clean:
 	rm -rf dist
