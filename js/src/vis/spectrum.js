@@ -10,6 +10,8 @@ export default class Spectrum extends Vis {
 
 		this._analyser.fftSize = 2*this._options.bins;
 		this._analyser.minDecibels = -130;
+		this._analyser.maxDecibels = -20;
+		this._analyser.smoothingTimeConstant = 0.6;
 
 		this._data = new Uint8Array(this._analyser.frequencyBinCount);
 

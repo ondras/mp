@@ -72,5 +72,5 @@ Web version can be controlled by `postMessage` with the following data object:
   - Waveform visuals via `decodeAudioData`
   - Realtime visuals using `AnalyserNode`
   - Metadata parsing thanks to `XHR2`, `ArrayBuffer`, `DataView` and `TextDecoder` APIs
-  - Written in ES2015, built using Babel 6 and good ol' Make
+  - Written in ES2015, bundled using Rollup and good ol' Make
   - CSS compiled with LESS

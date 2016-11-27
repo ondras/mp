@@ -8,13 +8,18 @@ storage["playlist"] = true;
 
 const repeatModes = ["N", "1", ""];
 const visualModes = ["spectrum", "psyco", ""];
+const storageKey = "mp:settings";
 
 function save() {
-
+	localStorage.setItem(storageKey, JSON.stringify(storage));
 }
 
 function load() {
-
+	try {
+		let data = JSON.parse(localStorage.getItem(storageKey));
+		Object.assign(storage, data);
+	} catch (e) {
+	}
 }
 
 export function get(key) {
