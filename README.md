@@ -6,12 +6,12 @@
 
 This is a music player built on web technologies. It can be used as a standalone cross-platform application (using [nw.js](http://nwjs.io/) or [Electron](http://electron.atom.io/)) or as a web page.
 
-The trick here is that the code base is shared: the very same application code that runs the web page is used in a standalone app.
+The trick here is that **the code base is shared: the very same application code that runs the web page is used in a standalone app**.
 
 ## Features, planned and implemented
 
 - [x] Sound playback
-  - [x] Supported formats: all that your {browser,Electron,nw.js 0.12} supports
+  - [x] Supported formats: all that your {browser,Electron,nw.js} supports
   - [x] Routing to WebAudio graph
 - [x] Playlist
   - [x] Basic control
