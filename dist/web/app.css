@@ -2,7 +2,7 @@ html {
   height: 100%;
 }
 body {
-  font-family: arial, sans-serif;
+  font-family: helvetica, arial, sans-serif;
   margin: 0;
   background-color: #222;
   overflow: hidden;
@@ -22,6 +22,7 @@ button {
   border: none;
   background-color: transparent;
   outline: none;
+  font-family: FontAwesome;
 }
 button:disabled {
   opacity: 0.3;
@@ -31,6 +32,10 @@ button:not(:disabled) {
 }
 button:not(:disabled):hover {
   color: #fff;
+}
+button::-moz-focus-inner {
+  padding: 0;
+  border: 0;
 }
 #info {
   position: relative;
@@ -98,9 +103,6 @@ button:not(:disabled):hover {
     display: none;
   }
 }
-#controls button {
-  font-family: FontAwesome, arial, sans-serif;
-}
 #controls #albumart {
   background-size: contain;
   background-position: 50% 50%;
@@ -141,6 +143,8 @@ button:not(:disabled):hover {
 }
 #controls #misc button sub {
   font-size: 60%;
+  font-family: helvetica, arial, sans-serif;
+  /* FontAwesome has weird 1ch */
   display: inline-block;
 }
 #controls #misc button sub:not(:empty) {
@@ -214,7 +218,6 @@ button:not(:disabled):hover {
   font-size: 18px;
   right: 8px;
   bottom: 8px;
-  font-family: FontAwesome;
 }
 @font-face {
   font-family: 'FontAwesome';

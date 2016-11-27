@@ -13,10 +13,6 @@
 		}
 	}
 	
-	button {
-		font-family: FontAwesome, arial, sans-serif;
-	}
-	
 	#albumart {
 		background-size: contain;
 		background-position: 50% 50%;
@@ -60,6 +56,7 @@
 		
 		sub {
 			font-size: 60%;
+			font-family: @font; /* FontAwesome has weird 1ch */
 			display: inline-block;
 			
 			&:not(:empty) {
