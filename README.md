@@ -6,12 +6,12 @@
 
 This is a music player built on web technologies. It can be used as a standalone cross-platform application (using [nw.js](http://nwjs.io/) or [Electron](http://electron.atom.io/)) or as a web page.
 
-The trick here is that the code base is shared: the very same application code that runs the web page is used in a standalone app.
+The trick here is that **the code base is shared: the very same application code that runs the web page is used in a standalone app**.
 
 ## Features, planned and implemented
 
 - [x] Sound playback
-  - [x] Supported formats: all that your {browser,Electron,nw.js 0.12} supports
+  - [x] Supported formats: all that your {browser,Electron,nw.js} supports
   - [x] Routing to WebAudio graph
 - [x] Playlist
   - [x] Basic control
@@ -72,5 +72,5 @@ Web version can be controlled by `postMessage` with the following data object:
   - Waveform visuals via `decodeAudioData`
   - Realtime visuals using `AnalyserNode`
   - Metadata parsing thanks to `XHR2`, `ArrayBuffer`, `DataView` and `TextDecoder` APIs
-  - Written in ES2015, built using Babel 6 and good ol' Make
+  - Written in ES2015, bundled using Rollup and good ol' Make
   - CSS compiled with LESS

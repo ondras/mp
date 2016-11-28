@@ -1,11 +1,12 @@
 @base: 80px;
+@font: helvetica, arial, sans-serif;
 
 html {
 	height: 100%;
 }
 
 body {
-	font-family: arial, sans-serif;
+	font-family: @font;
 	margin: 0;
 	background-color: #222;
 	overflow: hidden;
@@ -26,6 +27,7 @@ button {
 	border: none;
 	background-color: transparent;
 	outline: none;
+	font-family: FontAwesome;
 	
 	&:disabled {
 		opacity: 0.3;
@@ -38,6 +40,10 @@ button {
 		}
 	}
 	
+	&::-moz-focus-inner {
+		padding: 0;
+		border: 0
+	}
 }
 
 @import "info.less";

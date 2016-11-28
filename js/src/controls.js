@@ -1,82 +1,54 @@
-import * as player from "player.js";
-import * as playlist from "playlist.js";
 import * as platform from "platform.js";
 import * as command from "util/command.js";
 import * as pubsub from "util/pubsub.js";
+import * as settings from "settings.js";
 
 const document = window.document;
 const dom = document.querySelector("#controls");
 
-const repeatModes = [
-	{value:"N", title:"Repeat playlist"},
-	{value:"1", title:"Repeat song"},
-	{value:"", title:"No repeat"}
-];
+const repeatTitles = {
+	"N": "Repeat playlist",
+	"1": "Repeat song",
+	"": "No repeat"
+};
 
-const visualModes = [
-	{value:"spectrum", label:"1", title:"Spectrum analyser"},
-	{value:"psyco", label:"2", title:"Visual Player 2.0 for DOS"},
-	{value:"", label:"", title:"No visuals"}
-];
-
-const settings = {
-	repeat: 0,
-	playlist: true,
-	visual: 0
+const visualTitles = {
+	"spectrum": "Spectrum analyser", 
+	"psyco": "Visual Player 2.0 for DOS",
+	"": "No visuals"
 }
 
-function setPlaylist(state) {
-	let node = dom.querySelector("[data-command='settings:toggle-playlist']");
-
-	settings.playlist = state;
-	node.classList.toggle("on", state);
-	node.title = state ? "Playlist visible" : "Playlist hidden";
-	playlist.setVisibility(state);
+const visualSubs = {
+	"spectrum": "1", 
+	"psyco": "2",
+	"": ""
 }
 
-function setRepeat(index) {
-	let node = dom.querySelector("[data-command='settings:toggle-repeat']");
+function sync(message, publisher, data) {
+	let node;
 
-	settings.repeat = index;
-	let str = repeatModes[index].value;
+	let repeat = settings.get("repeat");
+	node = dom.querySelector("[data-command='settings:toggle-repeat']");
+	node.classList.toggle("on", repeat != "");
+	node.querySelector("sub").innerHTML = repeat;
+	node.title = repeatTitles[repeat];
 
-	node.classList.toggle("on", str != "");
-	node.querySelector("sub").innerHTML = str;
-	node.title = repeatModes[index].title;
+	let playlist = settings.get("playlist");
+	node = dom.querySelector("[data-command='settings:toggle-playlist']");
+	node.classList.toggle("on", playlist);
+	node.title = (playlist ? "Playlist visible" : "Playlist hidden");
 
-	playlist.setRepeat(str);
-	
+	let visual = settings.get("visual");
+	node = dom.querySelector("[data-command='settings:toggle-visual']");
+	node.classList.toggle("on", visual != "");
+	node.querySelector("sub").innerHTML = visualSubs[visual];
+	node.title = visualTitles[visual];
 }
 
-function setVisual(index) {
-	let node = dom.querySelector("[data-command='settings:toggle-visual']");
-
-	settings.visual = index;
-	let str = visualModes[index].value;
-
-	node.classList.toggle("on", str != "");
-	node.querySelector("sub").innerHTML = visualModes[index].label;
-	node.title = visualModes[index].title;
-	
-	player.setVisual(str);
-}
-
-command.register("settings:toggle-repeat", null, () => {
-	setRepeat((settings.repeat + 1) % repeatModes.length);
-});
-
-command.register("settings:toggle-visual", null, () => {
-	setVisual((settings.visual + 1) % visualModes.length);
-});
-
-command.register("settings:toggle-playlist", null, () => {
-	setPlaylist(!settings.playlist);
-});
+pubsub.subscribe("settings-change", sync);
 
 platform.globalShortcut("MediaPreviousTrack", () => command.execute("playlist:prev"));
 platform.globalShortcut("MediaNextTrack", () => command.execute("playlist:next"));
 platform.globalShortcut("MediaPlayPause", () => command.execute("player:toggle"));
 
-setRepeat(0);
-setPlaylist(true);
-setVisual(0);
+sync();

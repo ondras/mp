@@ -61,7 +61,7 @@ export function execute(command) {
 }
 
 document.body.addEventListener("click", e => {
-	let node = event.target;
+	let node = e.target;
 	while (node) {
 		let c = node.getAttribute("data-command");
 		if (c) { return execute(c); }

@@ -135,6 +135,11 @@ function publish(message, publisher, data) {
 	});
 }
 
+function subscribe(message, subscriber) {
+	if (!(message in storage)) { storage[message] = []; }
+	storage[message].push(subscriber);
+}
+
 const document$1 = window.document;
 const registry = Object.create(null);
 
@@ -195,7 +200,7 @@ function execute(command) {
 }
 
 document$1.body.addEventListener("click", e => {
-	let node = event.target;
+	let node = e.target;
 	while (node) {
 		let c = node.getAttribute("data-command");
 		if (c) { return execute(c); }
@@ -212,18 +217,6 @@ var command = Object.freeze({
 	isEnabled: isEnabled,
 	execute: execute
 });
-
-function xhr(url) {
-	let r = new window.XMLHttpRequest();
-	r.responseType = "arraybuffer";
-	r.open("get", url, true);
-	r.send();
-
-	return new Promise((resolve, reject) => {
-		r.addEventListener("load", e => resolve(e.target));
-		r.addEventListener("error", reject);
-	});	
-}
 
 const document$2 = window.document;
 
@@ -269,6 +262,8 @@ class Spectrum extends Vis {
 
 		this._analyser.fftSize = 2*this._options.bins;
 		this._analyser.minDecibels = -130;
+		this._analyser.maxDecibels = -20;
+		this._analyser.smoothingTimeConstant = 0.6;
 
 		this._data = new Uint8Array(this._analyser.frequencyBinCount);
 
@@ -313,13 +308,14 @@ class Psyco extends Vis {
 		super(audioContext);
 
 		this._analyser.minDecibels = -130;
-		this._analyser.fftSize = 64;
+		this._analyser.maxDecibels = -20;
+		this._analyser.fftSize = 512;
+		this._analyser.smoothingTimeConstant = 0.6;
 
 		this._data = new Uint8Array(this._analyser.frequencyBinCount);
 
 		this._ctx = this._node.getContext("2d");
 	}
-
 
 	_resize() {
 		this._node.width = this._node.clientWidth;
@@ -330,17 +326,16 @@ class Psyco extends Vis {
 		if (this._node.width != this._node.clientWidth || this._node.height != this._node.clientHeight) { this._resize(); }
 		this._analyser.getByteFrequencyData(this._data);
 
-		let values = [0, 0, 0];
-		let samplesPerValue = Math.floor(this._data.length / values.length);
+		let values = [[], [], []];
+		this._data.forEach((value, index) => {
+			let i7 = Math.floor(7 * index / this._data.length); /* reduce to 0..6 */
+			let i = 0;
+			if (i7 > 0) { i = 1; } /* 1..2 go t 1 */
+			if (i7 > 2) { i = 2; } /* 3..6 go to 2 */
+			values[i].push(value);
+		});
 
-		for (let i=0;i<this._data.length;i++) {
-			let index = Math.floor(i/samplesPerValue);
-			if (index >= values.length) { continue; }
-			values[index] += this._data[i];
-		}
-
-		values = values.map(value => Math.min(1, value / (255*samplesPerValue)));
-		window.values = values;
+		values = values.map(x => Math.max(...x) / 255);
 		let radius = Math.min(this._node.width, this._node.height) / 5;
 
 		this._ctx.clearRect(0, 0, this._node.width, this._node.height);
@@ -369,6 +364,58 @@ class Psyco extends Vis {
 	}
 }
 
+const storage$1 = Object.create(null);
+storage$1["repeat"] = "N";
+storage$1["visual"] = "spectrum";
+storage$1["playlist"] = true;
+
+const repeatModes = ["N", "1", ""];
+const visualModes = ["spectrum", "psyco", ""];
+const storageKey = "mp:settings";
+
+function save() {
+	localStorage.setItem(storageKey, JSON.stringify(storage$1));
+}
+
+function load() {
+	try {
+		let data = JSON.parse(localStorage.getItem(storageKey));
+		Object.assign(storage$1, data);
+	} catch (e) {
+	}
+}
+
+function get(key) {
+	return storage$1[key];
+}
+
+function set(key, value) {
+	storage$1[key] = value;
+	save();
+	publish("settings-change", this, key);
+}
+
+register$$1("settings:toggle-repeat", null, () => {
+	let key = "repeat";
+	let index = repeatModes.indexOf(get(key));
+	index = (index+1) % repeatModes.length;
+	set(key, repeatModes[index]);
+});
+
+register$$1("settings:toggle-visual", null, () => {
+	let key = "visual";
+	let index = visualModes.indexOf(get(key));
+	index = (index+1) % visualModes.length;
+	set(key, visualModes[index]);
+});
+
+register$$1("settings:toggle-playlist", null, () => {
+	let key = "playlist";
+	set(key, !get(key));
+});
+
+load();
+
 const audio = new window.Audio();
 const ctx = new window.AudioContext();
 const source = ctx.createMediaElementSource(audio);
@@ -378,6 +425,7 @@ const visuals = {
 	spectrum: new Spectrum(ctx),
 	psyco: new Psyco(ctx)
 };
+let currentVisual = null;
 
 register$$1("player:play", null, () => audio.play());
 register$$1("player:pause", null, () => audio.pause());
@@ -392,29 +440,29 @@ function play(url) {
 	audio.play();
 }
 
-let visual = null;
+function syncVisual() {
+	let name = get("visual");
 
-function setVisual(name) {
 	let parent = document.querySelector(".analyser"); // FIXME
 	parent.innerHTML = "";
 
-	if (visual) {
-		visual.stop();
-		let oldAudioNode = visual.getAudioNode();
+	if (currentVisual) {
+		currentVisual.stop();
+		let oldAudioNode = currentVisual.getAudioNode();
 		source.disconnect(oldAudioNode);
 		oldAudioNode.disconnect(ctx.destination);
 	} else {
 		source.disconnect(ctx.destination);
 	}
 	
-	visual = visuals[name];
+	currentVisual = visuals[name] || null;
 	
-	if (visual) {
-		let audioNode = visual.getAudioNode();
+	if (currentVisual) {
+		let audioNode = currentVisual.getAudioNode();
 		audioNode.connect(ctx.destination);
 		source.connect(audioNode);
-		parent.appendChild(visual.getNode());
-		visual.start();
+		parent.appendChild(currentVisual.getNode());
+		currentVisual.start();
 	} else {
 		source.connect(ctx.destination);
 	}
@@ -431,13 +479,13 @@ function handleEvent(e) {
 		case "playing":
 			disable("player:play");
 			enable("player:pause");
-			visual && visual.start();
+			currentVisual && currentVisual.start();
 		break;
 
 		case "pause":
 			disable("player:pause");
 			enable("player:play");
-			visual && visual.stop();
+			currentVisual && currentVisual.stop();
 		break;
 	}
 }
@@ -449,13 +497,21 @@ audio.addEventListener("loadedmetadata", handler$1);
 audio.addEventListener("playing", handler$1);
 audio.addEventListener("pause", handler$1);
 
+function onSettingsChange(message, publisher, data) {
+	if (data != "visual") { return; }
+	syncVisual();
+}
+
+subscribe("settings-change", onSettingsChange);
+
+syncVisual();
+
 const document$3 = window.document;
 const node = document$3.querySelector("#playlist");
 const list = node.querySelector("ol");
 
 let current = null;
 let items = [];
-let repeat = "";
 let height = 0;
 let dragging = null;
 
@@ -507,11 +563,11 @@ register$$1("playlist:randomize", null, () => {
 	updateCommands();
 });
 
-function setRepeat(r) {
-	repeat = r;
-}
+function syncVisibility() {
+	let visible = get("playlist");
+	let isVisible = (node.style.display != "none");
+	if (visible == isVisible) { return; }
 
-function setVisibility(visible) {
 	if (visible) {
 		resizeBy(0, height);
 		node.style.display = "";
@@ -590,6 +646,8 @@ list.addEventListener("dragenter", e => {
 
 audio.addEventListener("ended", e => {
 	let index = items.indexOf(current);
+	let repeat = get("repeat");
+
 	switch (repeat) {
 		case "1": // repeat current
 			playByIndex(index);
@@ -607,7 +665,26 @@ audio.addEventListener("ended", e => {
 	}
 });
 
+function syncSettings(message, publisher, data) {
+	if (data != "playlist") { return; }
+	syncVisibility();
+}
+
+subscribe("settings-change", syncSettings);
+syncVisibility();
 clear();
+
+function xhr(url) {
+	let r = new window.XMLHttpRequest();
+	r.responseType = "arraybuffer";
+	r.open("get", url, true);
+	r.send();
+
+	return new Promise((resolve, reject) => {
+		r.addEventListener("load", e => resolve(e.target));
+		r.addEventListener("error", reject);
+	});	
+}
 
 const document$5 = window.document;
 const node$1 = document$5.querySelector("#albumart");
@@ -1185,80 +1262,54 @@ dom.node.addEventListener("click", e => {
 const document$7 = window.document;
 const dom$1 = document$7.querySelector("#controls");
 
-const repeatModes = [
-	{value:"N", title:"Repeat playlist"},
-	{value:"1", title:"Repeat song"},
-	{value:"", title:"No repeat"}
-];
-
-const visualModes = [
-	{value:"spectrum", label:"1", title:"Spectrum analyser"},
-	{value:"psyco", label:"2", title:"Visual Player 2.0 for DOS"},
-	{value:"", label:"", title:"No visuals"}
-];
-
-const settings = {
-	repeat: 0,
-	playlist: true,
-	visual: 0
+const repeatTitles = {
+	"N": "Repeat playlist",
+	"1": "Repeat song",
+	"": "No repeat"
 };
 
-function setPlaylist(state) {
-	let node = dom$1.querySelector("[data-command='settings:toggle-playlist']");
+const visualTitles = {
+	"spectrum": "Spectrum analyser", 
+	"psyco": "Visual Player 2.0 for DOS",
+	"": "No visuals"
+};
 
-	settings.playlist = state;
-	node.classList.toggle("on", state);
-	node.title = state ? "Playlist visible" : "Playlist hidden";
-	setVisibility(state);
+const visualSubs = {
+	"spectrum": "1", 
+	"psyco": "2",
+	"": ""
+};
+
+function sync(message, publisher, data) {
+	let node;
+
+	let repeat = get("repeat");
+	node = dom$1.querySelector("[data-command='settings:toggle-repeat']");
+	node.classList.toggle("on", repeat != "");
+	node.querySelector("sub").innerHTML = repeat;
+	node.title = repeatTitles[repeat];
+
+	let playlist = get("playlist");
+	node = dom$1.querySelector("[data-command='settings:toggle-playlist']");
+	node.classList.toggle("on", playlist);
+	node.title = (playlist ? "Playlist visible" : "Playlist hidden");
+
+	let visual = get("visual");
+	node = dom$1.querySelector("[data-command='settings:toggle-visual']");
+	node.classList.toggle("on", visual != "");
+	node.querySelector("sub").innerHTML = visualSubs[visual];
+	node.title = visualTitles[visual];
 }
 
-function setRepeat$1(index) {
-	let node = dom$1.querySelector("[data-command='settings:toggle-repeat']");
-
-	settings.repeat = index;
-	let str = repeatModes[index].value;
-
-	node.classList.toggle("on", str != "");
-	node.querySelector("sub").innerHTML = str;
-	node.title = repeatModes[index].title;
-
-	setRepeat(str);
-	
-}
-
-function setVisual$1(index) {
-	let node = dom$1.querySelector("[data-command='settings:toggle-visual']");
-
-	settings.visual = index;
-	let str = visualModes[index].value;
-
-	node.classList.toggle("on", str != "");
-	node.querySelector("sub").innerHTML = visualModes[index].label;
-	node.title = visualModes[index].title;
-	
-	setVisual(str);
-}
-
-register$$1("settings:toggle-repeat", null, () => {
-	setRepeat$1((settings.repeat + 1) % repeatModes.length);
-});
-
-register$$1("settings:toggle-visual", null, () => {
-	setVisual$1((settings.visual + 1) % visualModes.length);
-});
-
-register$$1("settings:toggle-playlist", null, () => {
-	setPlaylist(!settings.playlist);
-});
+subscribe("settings-change", sync);
 
 globalShortcut("MediaPreviousTrack", () => execute("playlist:prev"));
 globalShortcut("MediaNextTrack", () => execute("playlist:next"));
 globalShortcut("MediaPlayPause", () => execute("player:toggle"));
 
-setRepeat$1(0);
-setPlaylist(true);
-setVisual$1(0);
+sync();
 
+/* just to initialize those */
 register$$1("app:devtools", "f12", () => {
 	showDevTools();
 });

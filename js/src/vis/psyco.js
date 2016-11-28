@@ -5,13 +5,14 @@ export default class Psyco extends Vis {
 		super(audioContext);
 
 		this._analyser.minDecibels = -130;
-		this._analyser.fftSize = 64;
+		this._analyser.maxDecibels = -20;
+		this._analyser.fftSize = 512;
+		this._analyser.smoothingTimeConstant = 0.6;
 
 		this._data = new Uint8Array(this._analyser.frequencyBinCount);
 
 		this._ctx = this._node.getContext("2d");
 	}
-
 
 	_resize() {
 		this._node.width = this._node.clientWidth;
@@ -22,17 +23,16 @@ export default class Psyco extends Vis {
 		if (this._node.width != this._node.clientWidth || this._node.height != this._node.clientHeight) { this._resize(); }
 		this._analyser.getByteFrequencyData(this._data);
 
-		let values = [0, 0, 0];
-		let samplesPerValue = Math.floor(this._data.length / values.length);
+		let values = [[], [], []];
+		this._data.forEach((value, index) => {
+			let i7 = Math.floor(7 * index / this._data.length); /* reduce to 0..6 */
+			let i = 0;
+			if (i7 > 0) { i = 1; } /* 1..2 go t 1 */
+			if (i7 > 2) { i = 2; } /* 3..6 go to 2 */
+			values[i].push(value);
+		});
 
-		for (let i=0;i<this._data.length;i++) {
-			let index = Math.floor(i/samplesPerValue);
-			if (index >= values.length) { continue; }
-			values[index] += this._data[i];
-		}
-
-		values = values.map(value => Math.min(1, value / (255*samplesPerValue)));
-		window.values = values;
+		values = values.map(x => Math.max(...x) / 255);
 		let radius = Math.min(this._node.width, this._node.height) / 5;
 
 		this._ctx.clearRect(0, 0, this._node.width, this._node.height);
