@@ -15,6 +15,7 @@ electron:
 	cp bin/mp-electron.sh $(ELECTRON)/mp.sh
 	cp bin/mp-electron.bat $(ELECTRON)/mp.bat
 	cp bin/install.bat $(ELECTRON)
+	cp js/worker.js $(ELECTRON)/
 	ln -f -r -s sample $(ELECTRON)
 
 nw:
@@ -24,6 +25,7 @@ nw:
 	cp -r $(COMMON) $(NW)
 	cp js/nw.app.js $(NW)/app.js
 	cp bin/mp-nw.sh $(NW)/mp.sh
+	cp js/worker.js $(ELECTRON)/
 	ln -f -r -s sample $(NW)
 
 web:
@@ -34,6 +36,7 @@ web:
 	cp html/index.html $(WEB)
 	cp js/web.app.js $(WEB)/app.js
 	cp js/web.main.js $(WEB)/main.js
+	cp js/worker.js $(ELECTRON)/
 	ln -f -r -s sample $(WEB)
 
 watch: all

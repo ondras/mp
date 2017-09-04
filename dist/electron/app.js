@@ -750,21 +750,32 @@ class Waveform {
 
 	_decoded(audioBuffer) {
 		let channels = [];
-		let width = this._options.width / this._options.columns;
-
 		for (let i=0;i<audioBuffer.numberOfChannels;i++) {
 			channels.push(audioBuffer.getChannelData(i));
 		}
+
+		let w = new Worker("worker.js");
+
+		w.addEventListener("message", e => {
+			if (e.data.type == "waveform") { this._draw(e.data.data); }
+		});
+
+		w.postMessage({
+			type: "audio-buffer",
+			columns: this._options.columns,
+			channels
+		});
+	}
+
+	_draw(data) {
+		let width = this._options.width / this._options.columns;
 
 		let ctx = this._node.getContext("2d");
 		ctx.beginPath();
 		ctx.moveTo(0, this._node.height);
 
-		let samplesPerColumn = Math.floor(channels[0].length / this._options.columns);
 		for (let i=0;i<this._options.columns;i++) {
-			let val = this._computeColumn(channels, i*samplesPerColumn, (i+1)*samplesPerColumn);
-
-			let height = val * this._node.height;
+			let height = data[i] * this._node.height;
 			ctx.lineTo(i*width, this._node.height-height);
 		}
 
@@ -781,19 +792,6 @@ class Waveform {
 		ctx.fillStyle = gradient;
 
 		ctx.fill();
-	}
-
-	_computeColumn(channels, fromSample, toSample) {
-		let sum = 0;
-
-		for (let i=fromSample; i<toSample; i++) {
-			for (let j=0; j<channels.length; j++) {
-				sum += Math.abs(channels[j][i]);
-			}
-		}
-
-		let count = (toSample - fromSample) * channels.length;
-		return 2*sum/count;
 	}
 }
 

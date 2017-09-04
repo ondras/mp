@@ -1,2 +1,2 @@
 #!/bin/sh
-~/node_modules/electron-prebuilt/dist/electron $(dirname $0)/main.js "$@"
+~/node_modules/electron/dist/electron $(dirname $0)/main.js "$@"
