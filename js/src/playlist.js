@@ -98,7 +98,7 @@ export function add(url) {
 	item.node.appendChild(item.remove);
 	item.node.draggable = true;
 
-	if (items.length == 1) { 
+	if (items.length == 1) {
 		current = items[0];
 		highlight();
 	}
@@ -111,7 +111,7 @@ list.addEventListener("click", e => {
 		remove = true;
 		node = node.parentNode;
 	}
-	
+
 	let index = nodeToIndex(node);
 	if (index == -1) { return; }
 
@@ -159,7 +159,9 @@ player.audio.addEventListener("ended", e => {
 			}
 		break;
 
-		case "": break; // no repeat at all
+		case "": // advance to next
+			if (index+1 < items.length) { playByIndex(index+1); }
+		break;
 	}
 });
 
